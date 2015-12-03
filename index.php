@@ -16,47 +16,7 @@ and open the template in the editor.
         <link rel="stylesheet" href="css/chatnacho.css" type="text/css">
     </head>
     <body>
-        <div class="container" id="mainFrame">
-            <div id="loginDiv" class="hidden">
-                <h1>Login or register</h1>
-                <div id="login">
-                    User name: <input id="userLogin" type="text" maxlength="10" size="10" /><br>
-                    Password: <input id="passLogin" type="password" maxlength="10" size="10" /><br>
-                    <input id="goLogin" type="button" value="GO!" />
-                    <a id="forgotPass">Forgot your password?</a> Don't have an account? <a id="regLink2">Register</a>
-                </div>
-
-                <div id="register">
-                    Already have an account? <a id="loginLink2">Login</a>
-                    User name: <input id="userReg" type="text" maxlength="10" size="10" /><br>
-                    email: <input id="emailReg" type="text" maxlength="40" size="40" /><br>
-                    Password: <input id="passReg" type="password" maxlength="10" size="10" /><br>
-                    Confirm password: <input id="confirmPass" type="password" maxlength="10" size="10" /><br>
-                    <input id="goReg" type="button" value="GO!" />
-                </div>
-            </div>
-            
-            <div id="chatDiv">
-                <h2>This is the Chat Nacho</h2>
-                <a id="loginLink">Login</a> or <a id="regLink">Register</a>
-                <div id="chatWindow"></div><br>
-                <div id="input">
-                    User name: <input id="usertxtbox" type="text" maxlength="10" size="10" /><br>
-                    Message:<br>
-                    <textarea id="msgbox" rows="4" cols="40"></textarea> 
-                    <input id="sendBtn" type="button" value="Send" />
-                </div>
-                <div>
-                    <table class="chatToolbar">
-                        <tr>
-                            <td><b>B</b></td>
-                            <td><i>I</i></td>
-                            <td style="text-decoration: underline">U</td>
-                            <td>Link</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
+        <div class="container" id="mainFrame">           
         </div>
         <script type="text/javascript" src="JavaScript/chatnacho.js"></script>
     </body>
