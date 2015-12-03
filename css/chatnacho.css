@@ -1,0 +1,43 @@
+/*
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+*/
+/* 
+    Created on : 02-Dec-2015, 23:44:45
+    Author     : USUARIO
+*/
+
+#chatDiv {
+    
+}
+
+#loginDiv {
+    //display: none;
+}
+
+.hidden {
+    display: none;
+}
+
+#chatWindow {
+    width: 60vw;
+    height: 20vw;
+    background-color: #B0E2FF;
+    border: 2px solid red;
+    border-radius: 10px;
+}
+
+.chatToolbar {
+    vertical-align: middle;
+}
+
+.chatToolbar td {
+    width: fit-content;
+    height: fit-content;
+    border: 1px solid black;
+    text-align: center;
+    vertical-align: middle;
+    padding: 3px 10px;
+}
+
