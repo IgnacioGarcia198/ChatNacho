@@ -17,7 +17,9 @@ $('document').ready(function() {
     var managerRunning = false;
     var debugMode = true;
     loadChat();
-    
+//==========================================================================================
+//                             WITHIN THE CHAT PAGE
+//=====================================================================================
     /**
      * Loads the chat page from its file
      * @returns {undefined}
@@ -39,9 +41,6 @@ $('document').ready(function() {
             $regLink.on('click', loadReg);
             $logoutLink.on('click', orderLogout);
             
-            function randomGuest() {
-                $userChat.val("Guest" + Math.floor(Math.random() * 1000));
-            }
             if(logged) {
                 $loginLink.addClass('hidden');
                 $regLink.addClass('hidden');
@@ -57,7 +56,6 @@ $('document').ready(function() {
                         randomGuest();
                     } 
                 });
-
             }
             
             orderRetrieveMessages();
@@ -80,70 +78,70 @@ $('document').ready(function() {
                 
                 var msgPost = "task=sendMessage" + "&" + 
                 "user=" + encodeURIComponent(trim($userChat.val())) + "&" + "message=" + encodeURIComponent(message);   
-                tasks.push(msgPost);
+                tasks.push(new QueueTask(msgPost, afterResponseSendMessage));
                 alert(msgPost);
                 if(!managerRunning) {
                     manageTasks();
                 }
             }
             
+            /**
+             * What we will do after handling the server response of sending a message to the chat.
+             * @param {type} res
+             * @returns {undefined}
+             */
+            function afterResponseSendMessage(res) {
+                alert(res);
+                if(res === "posted") {
+                    alert("post ok");
+                    $msgbox.val("");
+                    // the process was ok...
+
+                    //setTimeout(manageTasks, updateInterval);
+                }
+                else {
+                    alert("Sorry, there was an error when trying to post your message. Retrying...");
+                    setTimeout("sendMessage(task);", updateInterval);
+                }
+            }
+            
+        
             function orderRetrieveMessages() {
                 alert("retrieve"); 
-                //tasks.push("task=retrieve");
-                /*if(!managerRunning) {
+                tasks.push(new QueueTask("task=retrieve", afterResponseRetrieveMessages, true));
+                if(!managerRunning) {
                     manageTasks();
-                }*/
+                }
+            }
+            
+            function afterResponseRetrieveMessages(res) {
+                $chatWindow.html(res);
             }
             
             function orderLogout() {
                 alert("logout"); 
-                tasks.push("task=logout");
+                tasks.push(new QueueTask("task=logout", function(res) {
+                    if(res === "logout") {
+                        logged = false;
+                    }
+                }));
             }
             
-            function sendMessage(task) {
-            executeTask(task, handleSendMessage);
-    }
-    
-    /*function sendMessage(task) {
-        executeTask(task, function() {
-            // call the server page to execute the server-side operation
-            xhr.open("POST", 'chatnacho.php', true);
-            xhr.setRequestHeader("Content-Type",
-            "application/x-www-form-urlencoded");
-            xhr.onreadystatechange = handleLogout;
-            xhr.send(task);
-        });
-    }*/
-    
-            function handleSendMessage() {
-                handleServerResponse(function(res) {
-                    alert(res);
-                    if(res === "posted") {
-                        alert("post ok");
-                        $msgbox.val("");
-                        // the process was ok...
-
-                        //setTimeout(manageTasks, updateInterval);
-                    }
-                    else {
-                        alert("Sorry, there was an error when trying to post your message. Retrying...");
-                        setTimeout("sendMessage(task);", updateInterval);
-                    }
-                });
-                stopManager();
+            function randomGuest() {
+                $userChat.val("Guest" + Math.floor(Math.random() * 1000));
             }
         }); 
     }
     
-    function stopManager() {
-        managerRunning = false;
-        //manageTasks();
-    }
+    //==========================================================================================
+//                             END OF THE CHAT THINGS
+//=====================================================================================
     
-    function resetManager() {
-        managerRunning = false;
-        tasks.push("retrieve");
-    }
+    
+    
+    //==========================================================================================
+//                             WITHIN THE LOGIN PAGE
+//=====================================================================================
     /**
      * Loads the login page from its file
      * @returns {undefined}
@@ -151,21 +149,28 @@ $('document').ready(function() {
     function loadLogin() {
         alert("load login");
         $mainFrame.html("");
-        var correct = false;
+        //var correct = false;
+        
         $mainFrame.load("login.html", function() {
             var $loginDiv = $mainFrame.find('#loginDiv'),
             $userLogin = $loginDiv.find('#userLogin'),
             $testUserLogin = $loginDiv.find('#testUserLogin'),
             $passLogin = $loginDiv.find('#passLogin'),
+            $testPas = $loginDiv.find('#testPas'),
             $goLogin = $loginDiv.find('#goLogin'),
             $regLink2 = $loginDiv.find('#regLink2'),
             $forgotPass = $loginDiv.find('#forgotPass');
             
+            var flags = {
+                us : false,
+                pas : false
+            };
+            var minlength = 6;
             /**
              * CHECK THE USER
              * @returns {undefined}
              */
-            $userLogin.on("input", function() {
+            /*$userLogin.on("input", function() {
                 //alert(this.value);
                 fieldIsInDatabase(trim(this.value), "user", "login", function(res) {
                     if(res === "true") {
@@ -178,8 +183,12 @@ $('document').ready(function() {
                         correct = false;
                     }
                 });
-            });
- 
+            });*/
+            checkField($userLogin, "user", flags, "us", $testUserLogin, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength,
+            "Valid user", "That user is not in database", false, "login");
+            
+            checkPass($passLogin, $testPas, minlength, flags, "pas");
+            
             $goLogin.on('click', sendLogin);
             /**
              * Function triggered when clicking on "go" button.
@@ -187,346 +196,46 @@ $('document').ready(function() {
              */
             function sendLogin() {
                 alert("send login");
+                if(!flags['us']) {
+                    alert("Bad user name");
+                    return;
+                }
+
+                if(!flags['pas']) {
+                    alert("Bad password");
+                    return;
+                }
+                
                 var loginPost = "task=login&user=" + encodeURIComponent(trim($userLogin.val())) + "&" + 
                 "pass="  + encodeURIComponent($passLogin.val());
-                tasks.push(loginPost);
+                tasks.push(new QueueTask(loginPost, afterResponseLogin));
                 if(!managerRunning) {
                     manageTasks();
                 }
                 // send to the login.php or whatever
             }
+            
+            function afterResponseLogin(res) {
+                alert(res);
+                alert(parseInt(res));
+                if(parseInt(res) > 0) {
+                    logged = true;
+                }
+                tasks = [];
+                resetManager();
+                loadChat();
+            }
         });   
     }
-   
-    function manageTasks() {
-        managerRunning = true;
-        if(tasks.length > 0) {
-            var nextTask = tasks.shift();
-            //alert(nextTask);
-            var taskName = nextTask.substring(nextTask.indexOf('=')+1, nextTask.indexOf('&'));
-            if(taskName === "login") {
-                postLogin(nextTask);
-            }
-            else if(taskName === "register") {
-                alert("task register");
-                postReg(nextTask);
-            }
-            else if(taskName === "retrieve") {
-                retrieveMessages(nextTask);
-            }
-            else if(taskName === "logout") {
-                logout(nextTask);
-            }
-            else if(taskName === "sendMessage") {
-                sendMessage(nextTask);
-            }
-        }
-    }
     
-    function retrieveMessages(task) {
-        
-    }
+    //==========================================================================================
+//                             END OF THE LOGIN THINGS
+//=====================================================================================
     
-    function executeTask(task, handler) {
-        xhr = new XMLHttpRequest();
-        if(xhr)
-        {
-            try
-            {
-                // don't start another server operation if such an operation
-                // is already in progress
-                if (xhr.readyState === 4 || xhr.readyState === 0)
-                {
-                    xhr.open("POST", 'chatnacho.php', true);
-                    xhr.setRequestHeader("Content-Type",
-                    "application/x-www-form-urlencoded");
-                    xhr.onreadystatechange = handler;
-                    xhr.send(task);
-                }
-                else
-                {
-                    // we will try again
-                    setTimeout("executeTask(task, callback);", updateInterval);
-                }
-            }
-            catch(e)
-            {
-                displayError(e.toString());
-            }
-        }
-    }
-    
-    function handleServerResponse(callback) {
-        // continue if the process is completed
-        if (xhr.readyState === 4)
-        {
-            // continue only if HTTP status is "OK"
-            var status = xhr.status;
-            if((status >= 200 && status < 300) || status === 304)
-            {
-                try
-                {
-                    // process the server's response
-                    var parser = new DOMParser();
-                    var xmlResponse = parser.parseFromString(xhr.responseText, "application/xml"), // IE cannot read the response XML thing or so seems to be...
-                    docresponse = xmlResponse.documentElement;
-                    var res = docresponse.firstChild.data.toString();
-                    
-                    callback(res);
-                    //resetManager();
-                }
-                catch(e)
-                {
-                    // display the error message
-                    displayError(e.toString());
-                }
-            }
-            else
-            {
-                // display the error message
-                displayError(xhr.statusText);
-            }
-        }
-    }
-    
-    function logout(task) {
-        executeTask(task, handleLogout);
-    }
-    
-    function handleLogout() {
-        handleServerResponse(function(res) {
-            if(res === "logout") {
-                logged = false;
-            }
-        });
-        resetManager();
-    }
-    
-    /*function logout(task) {
-        xhr = new XMLHttpRequest();
-        if(xhr)
-        {
-            try
-            {
-                // don't start another server operation if such an operation
-                // is already in progress
-                if (xhr.readyState === 4 ||
-                xhr.readyState === 0)
-                {
-                    // call the server page to execute the server-side operation
-                    xhr.open("POST", 'chatnacho.php', true);
-                    xhr.setRequestHeader("Content-Type",
-                    "application/x-www-form-urlencoded");
-                    xhr.onreadystatechange = handleLogout;
-                    xhr.send(task);
-                }
-                else
-                {
-                    // we will check again for new messages
-                    setTimeout("postLogin(task);", updateInterval);
-                }
-            }
-            catch(e)
-            {
-                displayError(e.toString());
-            }
-        }
-    }*/
-    
-    /*function handleLogout() {
-        // continue if the process is completed
-        if (xhr.readyState === 4 && xhr.status === 200)
-        {
-            // continue only if HTTP status is "OK"
-            if (xhr.status === 200)
-            {
-                try
-                {
-                    tasks = [];
-                    // process the server's response
-                    var parser = new DOMParser();
-                    var xmlResponse = parser.parseFromString(xhr.responseText, "application/xml"), // IE cannot read the response XML thing or so seems to be...
-                    docresponse = xmlResponse.documentElement;
-                    var res = docresponse.firstChild.data.toString();
-                    if(res == "logout") {
-                        logged = false;
-                    }
-                    //callback(res);
-                }
-                catch(e)
-                {
-                    // display the error message
-                    displayError(e.toString());
-                }
-            }
-            else
-            {
-                // display the error message
-                displayError(xhr.statusText);
-            }
-        }
-    }*/
-    
-    
-    
-    /*function sendMessage(task) {
-        xhr = new XMLHttpRequest();
-        if(xhr)
-        {
-            try
-            {
-                // don't start another server operation if such an operation
-                // is already in progress
-                if (xhr.readyState === 4 ||
-                xhr.readyState === 0)
-                {
-                    // call the server page to execute the server-side operation
-                    xhr.open("POST", 'chatnacho.php', true);
-                    xhr.setRequestHeader("Content-Type",
-                    "application/x-www-form-urlencoded");
-                    xhr.onreadystatechange = handleSendMessage;
-                    xhr.send(task);
-                }
-                else
-                {
-                    // we will check again for new messages
-                    setTimeout("postLogin(task);", updateInterval);
-                }
-            }
-            catch(e)
-            {
-                displayError(e.toString());
-            }
-        }
-    }*/
-    /*
-    function handleSendMessage(task) {
-        // continue if the process is completed
-        if (xhr.readyState === 4)
-        {
-            // continue only if HTTP status is "OK"
-            var status = xhr.status;
-            if((status >= 200 && status < 300) || status === 304)
-            {
-                try
-                {
-                    //tasks = [];
-                    // process the server's response
-                    alert("response: " + xhr.responseText);
-                    var parser = new DOMParser();
-                    var xmlResponse = parser.parseFromString(xhr.responseText, "application/xml"), // IE cannot read the response XML thing or so seems to be...
-                    docresponse = xmlResponse.documentElement;
-                    // retrieve the document element
-                    //response = xmlHttpGetMessages.responseXML.documentElement;
-                    // retrieve the flag that says if the chat window has been cleared or not
-                    //alert(docresponse.getElementsByTagName("clear")[0].firstChild.data);
-                    var res = docresponse.firstChild.data.toString();
-                    alert(res);
-                    if(res == "posted") {
-                        // the process was ok...
-                        stopManager();
-                        //setTimeout(manageTasks, updateInterval);
-                    }
-                    else {
-                        alert("Sorry, there was an error when trying to post your message. Retrying...");
-                        setTimeout("sendMessage(task);", updateInterval)
-                    }
-                    //$msgbox
-                    //stopManager();
-                    
-                    //callback(res);
-                }
-                catch(e)
-                {
-                    // display the error message
-                    alert("exception: " + e.toString());
-                    displayError(e.toString());
-                }
-            }
-            else
-            {
-                // display the error message
-                displayError(xhr.statusText);
-            }
-        }
-    }*/
-    
-    function postLogin(task) {
-        xhr = new XMLHttpRequest();
-        if(xhr)
-        {
-            try
-            {
-                // don't start another server operation if such an operation
-                // is already in progress
-                if (xhr.readyState === 4 ||
-                xhr.readyState === 0)
-                {
-                    // call the server page to execute the server-side operation
-                    xhr.open("POST", 'chatnacho.php', true);
-                    xhr.setRequestHeader("Content-Type",
-                    "application/x-www-form-urlencoded");
-                    xhr.onreadystatechange = handleLogin;
-                    xhr.send(task);
-                }
-                else
-                {
-                    // we will check again for new messages
-                    setTimeout("postLogin(task);", updateInterval);
-                }
-            }
-            catch(e)
-            {
-                displayError(e.toString());
-            }
-        }
-    }
-    
-    function handleLogin() {
-        // continue if the process is completed
-        if (xhr.readyState === 4)
-        {
-            // continue only if HTTP status is "OK"
-            var status = xhr.status;
-            if((status >= 200 && status < 300) || status === 304)
-            {
-                try
-                {
-                    tasks = [];
-                    // process the server's response
-                    var parser = new DOMParser();
-                    var xmlResponse = parser.parseFromString(xhr.responseText, "application/xml"), // IE cannot read the response XML thing or so seems to be...
-                    docresponse = xmlResponse.documentElement;
-                    // retrieve the document element
-                    //response = xmlHttpGetMessages.responseXML.documentElement;
-                    // retrieve the flag that says if the chat window has been cleared or not
-                    //alert(docresponse.getElementsByTagName("clear")[0].firstChild.data);
-                    var user_id = docresponse.firstChild.data.toString();
-                    if(parseInt(user_id) > 0) {
-                        logged = true;
-                    }
-                    resetManager();
-                    //callback(res);
-                }
-                catch(e)
-                {
-                    // display the error message
-                    displayError(e.toString());
-                }
-            }
-            else
-            {
-                // display the error message
-                displayError(xhr.statusText);
-            }
-        }
-    }
-    
-    function changeToLogged() {
-        logged = true;
-        
-    }
-    
+      
+    //==========================================================================================
+//                             WITHIN THE REGISTER PAGE
+//=====================================================================================
     /**
      * Loads the register page from its file
      * @returns {undefined}
@@ -559,119 +268,18 @@ $('document').ready(function() {
             $goReg.on('click', sendReg);
             
             
-            checkFieldRegister($userReg, "user", "us", $testUserReg, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength);
-            checkFieldRegister($emailReg, "email", "em", $testEmail, "^[a-z0-9]+@[a-z]+\\.[a-z]{2,3}$", minlength);
-            
-            //alert("flag: " + flags['us']);
-            /**
-             * CHECK THE USER
-             */
-            /*$userReg.on("input", function() {
-                checkFieldReg("user", $testUserReg);
-            });*/
-            /*$userReg.on("input", function() {
-                alert(this.value);
-                fieldIsInDatabase(trim(this.value), "user", "", function(res) {
-                    if(res === "true") {
-                        alert("hello");
-                        $testUserReg.html("User already in database");
-                        us = false;
-                    }
-                    else {
-                        $testUserReg.html("Valid user");
-                        us = true;
-                    }
-                });
-            });*/
-            
-            /**
-             * CHECK THE EMAIL
-             */
-            /*$emailReg.on("input", function() {
-                alert(this.value);
-                fieldIsInDatabase(trim(this.value), "email", "", function(res) {
-                    if(res === "true") {
-                        alert("hello");
-                        $testEmail.html(" Email already in database");
-                        em = false;
-                    }
-                    else {
-                        $testEmail.html("Valid email");
-                        em = true;
-                    }
-                });
-                alert("flag: " + flags['us']);
-            });*/
-            
-            /**
-             * 
-             * @param {type} a
-             * @param {type} b
-             * @returns {Boolean}
-             */
-            function match(a, b, minlength) {
-                //alert("match goes");
-                if(a.length < minlength) {
-                    $testReg.html("too short");
-                    return false;
-                }
-                var patt = new RegExp(b, "g");
-                if(patt.test(a)) {
-                    $testReg.html("matches");
-                    return true;
-                }
-                else{
-                    //test("joder");
-                    $testReg.html("no match");
-                    return false;
-                }
-                //$testReg.html(patt.test(a));
-                //return patt.test(a);
-            }
-            
-            function checkFieldRegister($input, field, flag, $output, regex, minlength) {
-                $input.on("input", function() {
-                    //alert(this.value);
-                    var value = this.value;
-                    if(!match(value, regex, minlength)) {
-                        //$testReg.html("mierda");
-                        $output.html("This is not a valid " + field);
-                        return;
-                    }
-                    fieldIsInDatabase(trim(this.value), field, "", function(res) {
-                        if(res === "true") {
-                            alert("hello");
-                            $output.html("That " + field + " is already in database");
-                            flags[flag] = false;
-                        }
-                        else {
-                            $output.html("Valid " + field);
-                            flags[flag] = true;
-                        }
-                    });
-            });
-            }
-            //checkFieldReg("user", $testUserReg);
-            /*function checkFieldReg(field, $element) {
-                alert($('this').val());
-                fieldIsInDatabase(trim(this.value), "user", "", function(res) {
-                    if(res === "true") {
-                        alert("hello");
-                        $element.html("That " + field + " is already in database");
-                        return false;
-                    }
-                    else {
-                        $element.html("Valid " + field);
-                        return true;
-                    }
-                });
-            }*/
-            
+            checkField($userReg, "user", flags, "us", $testUserReg, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength,
+            "That user is already registered. Please login or pick another user name.", "Valid user name", true);
+            checkField($emailReg, "email", flags, "em", $testEmail, "^[a-z0-9]+@[a-z]+\\.[a-z]{2,3}$", minlength,
+            "That email address is already registered. Please login or write a different email.", "Valid email address", true);
+ 
             /**
              * CHECK THE PASSWORD
              */
-            $passReg.on("input", function() {
-                if(match(this.value, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength)) {
+            
+            checkPass($passReg, $testPass, minlength, flags, "pas");
+            /*$passReg.on("input", function() {
+                if(match(this.value, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength, $testPass)) {
                     $testPass.html("Password correct!");
                     flags.pas = true;
                 }
@@ -679,7 +287,7 @@ $('document').ready(function() {
                     $testPass.html("Password not good enough...");
                     flags.pas = false;
                 }
-            });
+            });*/
             
             /**
              * CHECK PASSWORD CONFIRMATION
@@ -702,8 +310,8 @@ $('document').ready(function() {
              */
             function sendReg() {
                 //alert("flag: " + flags['us']);
-                /*if(!flags['us']) {
-                    alert("Bad username");
+                if(!flags['us']) {
+                    alert("Bad user name");
                     return;
                 }
                 if(!flags['em']) {
@@ -717,14 +325,14 @@ $('document').ready(function() {
                 if(!flags['confpas']) {
                     alert("Pasword does not match");
                     return;
-                }*/
+                }
                 alert("no errror");
                 var regt = ["task=register", "user=" + encodeURIComponent($userReg.val()), 
                 "email=" + encodeURIComponent($emailReg.val()),
                 "pass=" + encodeURIComponent($passReg.val())];
                 var regPost = regt.join("&");
                 alert(regPost);
-                tasks.push(regPost);
+                tasks.push(new QueueTask(regPost, afterResponseRegister));
                 if(!managerRunning) {
                     alert("run manager");
                     manageTasks();
@@ -733,11 +341,64 @@ $('document').ready(function() {
                     alert("manager is running");
                 }
             }
+            
+            function afterResponseRegister(res) {
+                
+                if(parseInt(res) > 0) {
+                    logged = true;
+                }
+                tasks = [];
+                resetManager();
+                loadChat();
+            }
         });
     }
     
-    function postReg(task) {
-        alert("postReg");
+    //==========================================================================================
+//                             END OF THE REGISTER THINGS
+//=====================================================================================
+    
+    /**
+     * Manages a queue of tasks. Also there are things missing here...
+     * @returns {undefined}
+     */
+    function manageTasks() {
+        managerRunning = true;
+        if(tasks.length > 0) {
+            var next = tasks.shift();
+            executeTask(next);
+            /*
+            var nextTask = next.task;
+            //alert(nextTask);
+            var taskName = nextTask.substring(nextTask.indexOf('=')+1, nextTask.indexOf('&'));
+            if(taskName === "login") {
+                postLogin(nextTask);
+            }
+            else if(taskName === "register") {
+                alert("task register");
+                postReg(nextTask);
+            }
+            else if(taskName === "retrieve") {
+                retrieveMessages(nextTask);
+            }
+            else if(taskName === "logout") {
+                //logout(nextTask);
+                executeTask(next);
+            }
+            else if(taskName === "sendMessage") {
+                sendMessage(nextTask);
+            }*/
+        }
+    }
+    
+    /**
+     * General function, it executes the tasks being used from a higher layer of functions.
+     * @param {type} task
+     * @param {type} handler
+     * @param {type} callback
+     * @returns {undefined}
+     */
+    function executeTask(qtask) {
         xhr = new XMLHttpRequest();
         if(xhr)
         {
@@ -747,17 +408,18 @@ $('document').ready(function() {
                 // is already in progress
                 if (xhr.readyState === 4 || xhr.readyState === 0)
                 {
-                    // call the server page to execute the server-side operation
                     xhr.open("POST", 'chatnacho.php', true);
                     xhr.setRequestHeader("Content-Type",
                     "application/x-www-form-urlencoded");
-                    xhr.onreadystatechange = handleReg;
-                    xhr.send(task);
+                    xhr.onreadystatechange = function() {
+                        handleServerResponse(qtask.callback, qtask.complex);
+                    }       
+                    xhr.send(qtask.task);
                 }
                 else
                 {
-                    // we will check again for new messages
-                    setTimeout("postReg(task);", updateInterval);
+                    // we will try again
+                    setTimeout("executeTask(task, callback);", updateInterval);
                 }
             }
             catch(e)
@@ -767,7 +429,12 @@ $('document').ready(function() {
         }
     }
     
-    function handleReg() {
+    /**
+     * General function. Handles the response for the former one.
+     * @param {type} callback
+     * @returns {undefined}
+     */
+    function handleServerResponse(callback, complex) {
         // continue if the process is completed
         if (xhr.readyState === 4)
         {
@@ -777,19 +444,29 @@ $('document').ready(function() {
             {
                 try
                 {
-                    tasks = [];
                     // process the server's response
+                    var response = xhr.responseText;
+                    if (response.indexOf("ERRNO") >= 0
+                    || response.indexOf("error:") >= 0
+                    || response.length === 0)
+                        throw(response.length === 0 ? "Void server response." : response);
+                    
                     var parser = new DOMParser();
-                    var xmlResponse = parser.parseFromString(xhr.responseText, "application/xml"), // IE cannot read the response XML thing or so seems to be...
+                    var xmlResponse = parser.parseFromString(response, "application/xml"), // IE cannot read the response XML thing or so seems to be...
                     docresponse = xmlResponse.documentElement;
-                    // retrieve the document element
-                    //response = xmlHttpGetMessages.responseXML.documentElement;
-                    // retrieve the flag that says if the chat window has been cleared or not
-                    //alert(docresponse.getElementsByTagName("clear")[0].firstChild.data);
-                    //user_id = docresponse.firstChild.data;
-                    changeToLogged();
-                    resetManager();
-                    //callback(res);
+                    var res;
+                    if(typeof complex === "undefined") {
+                        res = docresponse.firstChild.data.toString();
+                    }
+                    
+                    else {
+                        res = extractMessages(docresponse);
+                    }
+                    
+                    if(typeof callback !== "undefined") {
+                        callback(res);
+                    }
+                    //resetManager();
                 }
                 catch(e)
                 {
@@ -805,17 +482,112 @@ $('document').ready(function() {
         }
     }
     
-    /**
-     * Checks if the field is already in the database or not.
-     * @param {type} fieltext
-     * @param {type} field
-     * @returns {undefined}
-     */
-    function fieldIsInDatabase(value, field, op, callback) {
+    function extractMessages(docresponse) {
+
+        // retrieve the arrays from the server's response
+        //idArray = docresponse.getElementsByTagName("id");
+        //colorArray = docresponse.getElementsByTagName("color");
+        var nameArray = docresponse.getElementsByTagName("user_name");
+        var timeArray = docresponse.getElementsByTagName("time");
+        var messageArray = docresponse.getElementsByTagName("message");
+        var res = [];
+        for(var i = 0, l = nameArray.length; i < l; i ++) {
+            var name = nameArray[i].firstChild.data.toString(),
+            time = timeArray[i].firstChild.data.toString(),
+            message = messageArray[i].firstChild.data.toString();
+            res.push('<div>[' + time + '] ' + name + ' said: <br/>' + 
+            message + '</div>');
+        }
+        return res.join("");
+        //setTimeout("requestNewMessages();", updateInterval);
+    }
+    
+    function QueueTask(task, callback, complex) { // this is designed in order to call a function with no parameters...
+        this.task = task;
+        this.callback = callback;
+        this.complex = complex;
+    }
+    
+
+    function match(a, b, minlength, $output) {
+        //alert("match goes");
+        if(a.length < minlength) {
+            $output.html("Too short");
+            return false;
+        }
+        var patt = new RegExp(b, "g");
+        if(patt.test(a)) {
+            //$output.html("matches");
+            return true;
+        }
+        else{
+            //test("joder");
+            $output.html("Not valid");
+            return false;
+        }
+        //$testReg.html(patt.test(a));
+        //return patt.test(a);
+    }
+    
+    function checkField($input, field, flags, flag, $output, regex, minlength, msgMatch, msgNoMatch, vf, op) {
+        $input.on("input", function() {
+            //alert(op);
+            var value = this.value;
+            if(!match(value, regex, minlength, $output)) {
+                //alert("regex error");
+                //$testReg.html("mierda");
+                //$output.html("This is not a valid " + field);
+                return;
+            }
+            fieldIsInDatabase(trim(value), field, function(res) {
+                if(res === "true") {
+                    alert("hello");
+                    $output.html(msgMatch);
+                    flags[flag] = !vf;
+                    //alert("is in");
+                }
+                else {
+                    $output.html(msgNoMatch);
+                    flags[flag] = vf;
+                    //alert("is not");
+                }
+            }, op);
+        });
+    }
+    
+    function checkPass($input, $output, minlength, flags, flag) {
+        $input.on("input", function() {
+            if(match(this.value, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength, $output)) {
+                $output.html("Password correct!");
+                flags[flag] = true;
+            }
+            else {
+                $output.html("Password not good enough...");
+                flags[flag] = false;
+            }
+        });
+    }
+    
+    /*function fieldIsInDatabase(value, field, callback, op) {
         var task = "task=fieldcheck&field=" + field + "&" + "value=" + value;
         if(typeof op !== 'undefined' && op !== "") {
             task + "op=" + op;
         }
+        tasks.push(new QueueTask(task, callback));
+        if(!managerRunning) {
+            //alert("run manager");
+            manageTasks();
+        }
+    }*/
+    
+    function fieldIsInDatabase(value, field, callback, op) {
+        //alert("ehhh " + op);
+        var task = "task=fieldcheck&field=" + field + "&" + "value=" + value;
+        alert(task);
+        if(typeof op !== 'undefined' && op !== "") {
+            task += "&op=" + op;
+        }
+        alert(task);
         //tasks.push(task);
         xhr = new XMLHttpRequest();
         if(xhr)
@@ -824,8 +596,7 @@ $('document').ready(function() {
             {
                 // don't start another server operation if such an operation
                 // is already in progress
-                if (xhr.readyState === 4 ||
-                xhr.readyState === 0)
+                if (xhr.readyState === 4 || xhr.readyState === 0)
                 {
                     // call the server page to execute the server-side operation
                     xhr.open("POST", 'chatnacho.php', true);
@@ -833,14 +604,14 @@ $('document').ready(function() {
                     "application/x-www-form-urlencoded");
                     xhr.onreadystatechange = function() {
                         handleFieldInDatabase(callback);
-                    }
-                            
+                    };
+                       
                     xhr.send(task);
                 }
                 else
                 {
                     // we will check again for new messages
-                    setTimeout("fieldIsInDatabase(value, field, op);", updateInterval);
+                    setTimeout("fieldIsInDatabase(value, field, callback, op);", updateInterval);
                 }
             }
             catch(e)
@@ -873,8 +644,8 @@ $('document').ready(function() {
                     //response = xmlHttpGetMessages.responseXML.documentElement;
                     // retrieve the flag that says if the chat window has been cleared or not
                     //alert(docresponse.getElementsByTagName("clear")[0].firstChild.data);
-                    var res = docresponse.firstChild.data;
-                    //alert(res);
+                    var res = docresponse.firstChild.data.toString();
+                    //alert("response " + xhr.responseText);
                     //alert(callback);
                     callback(res);
                     stopManager();
@@ -892,6 +663,20 @@ $('document').ready(function() {
                 displayError(xhr.statusText);
             }
         }
+    }
+    
+    function stopManager() {
+        managerRunning = false;
+        //manageTasks();
+    }
+    
+    function resetManager() {
+        managerRunning = false;
+        tasks.push("retrieve");
+    }
+    
+    function changeToLogged() {
+        logged = true;  
     }
     
     /**
