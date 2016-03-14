@@ -35,103 +35,46 @@ class Chatnacho {
         $result = $this->msqli->query($query);
     }
     
-    public function checkField($field, $value, $op = "") {
-        // query hehe
-        //$query = "";
-        //return "".$field.$value.$op;
-        if($op == "login") {
-            $query = 'SELECT user_name FROM users WHERE user_name = "' . $value . '" OR email = "' . $value . '"';
-            //$query = "morning";
-            //return $query;
+    
+    
+    public function retrieveMessages($id = 0, $alone = true) {
+        if($id > 0) { // we  publish on the chat  from the first non-published message.
+            $query = 'SELECT user_name, message, posted_on, message_id
+            FROM chat WHERE message_id > ' . $id . ' ORDER BY message_id ASC';
         }
         else {
-            $query = 'SELECT ' . $field . ' FROM users WHERE ' . $field . ' = "' . $value . '"';
-            //$query = "night";
-            //return $query;
-        }
-        //return $query;
-        $result = $this->msqli->query($query);
-        //return "result " . ($result->num_rows);
-        $re = false;
-        if($result && $result->num_rows == 1) {
-            $re = true;
-        }
-        $result->close();
-        $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-        $response .= '<response>' . (($re) ? 'true' : 'false') . '</response>';
-        return $response;
-    }
-    
-    public function login($user, $password) {
-        $pass = sha1($password);
-        $query = 'SELECT user_id FROM users WHERE (user_name = "' . $user . '" OR email = "' . $user . '") AND password = "' . $pass . '"';
-        $result = $this->msqli->query($query);
-        if($result->num_rows == 1) {
-            $row = $result->fetch_row();
-            $result->close();
-            $re = $row[0];
-            $_SESSION['user_id'] = $re;
-            $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-            $response .= '<response>' . $re . '</response>';
-            return $response;
-        }
-    }
-    
-    public function register($user, $email, $password) {
-        $user = $this->msqli->real_escape_string($user);
-        $email = $this->msqli->real_escape_string($email);
-        $pass = $this->msqli->real_escape_string(sha1($password));
-        $query = 'INSERT INTO users (user_name, email, password)' . // sql query, inputing the message in the db.
-        'VALUES (
-        "' . $user . '",
-        "' . $email . '",
-        "' . $pass . '")';
-        $result = $this->msqli->query($query);
-        $query = 'SELECT user_id FROM users WHERE email = ' + $email;
-        $result = $this->msqli->query($query);
-        if($result->num_rows == 1) {
-            $row = $result->fetch_row();
-            $result->close();
-            $re = $row[0];
-            $_SESSION['user_id'] = $re;
-            $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-            $response .= '<response>' . $re . '</response>';
-            return $response;
-        }
-    }
-    
-    public function retrieveMessages() {
-        $query = 'SELECT user_name, message, posted_on, message_id
+            $query = 'SELECT user_name, message, posted_on, message_id
             FROM (SELECT user_name, message, message_id, DATE_FORMAT(posted_on, "%H:%i:%s") AS posted_on
             FROM chat ORDER BY message_id DESC LIMIT 50) AS Last50 ORDER BY message_id ASC';
+        }
+        
         $result = $this->msqli->query($query);
+        $response = "";
+        if($alone) {
+            $response .= '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
+            $response .= '<response>';
+        }
         if($result->num_rows) {
             // now we give the xml response
-            $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-            $response .= '<response>';
             while($row = $result->fetch_row()) {
                 //$id = $row[0];
                 $user_name = $row[0];
                 $time = $row[2];
                 $message = $row[1];
+                $mess_id = $row[3];
                 $response .= //'<id>' . $id . '</id>' .
                         '<user_name>' . $user_name . '</user_name>' .
                         '<time>' . $time . '</time>' .
-                        '<message>' . $message . '</message>';
+                        '<message>' . $message . '</message>' .
+                        '<mess_id>' . $mess_id . '</mess_id>';
             }
             $result->close();
-            $response .= '</response>';
-        
-            return $response;
         }
-    }
-    
-    public function logout() {
-        unset($_SESSION['user_id']);
-        $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-        $response .= '<response>logout</response>';
+        $response .= '</response>';
         return $response;
     }
+    
+    
     
     /**
      * It sends a new message to the database.
@@ -153,8 +96,15 @@ class Chatnacho {
         //return $this->msqli->affected_rows;
         if($this->msqli->affected_rows == 1) {
             $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-            $response .= '<response>posted</response>';
-            return $response;
+            $response .= '<response><posted>true</posted>';
         }
+        
+        else {
+            $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
+            $response .= '<response><posted>false</posted>';
+        }
+        return $response;
     }
+    
+    
 }

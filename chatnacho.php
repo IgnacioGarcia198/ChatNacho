@@ -8,6 +8,7 @@ function work() {
     $task = $_POST['task']; // WE RETRIEVE THE MODE HERE BY POST.
     //$id = 0;
     $chat = new Chatnacho();
+    
     if($task == 'sendMessage') {
         if(empty($_POST['user']) || empty($_POST['message'])) {
             return;
@@ -15,49 +16,24 @@ function work() {
         $user = $_POST['user'];
         $message = $_POST['message'];
         echo $chat->postNewMessage($user, $message);
-        // query to database.
-    }
-    elseif($task == 'fieldcheck') {
-        if(empty($_POST['field']) || empty($_POST['value'])) {
-            return;
-        }
-        $field = $_POST['field'];
-        if($field == "user") {
-            $field = "user_name";
-        }
-        $value = $_POST['value'];
-        if(!empty($_POST['op'])) {
-            echo $chat->checkField($field, $value, $_POST['op']);
+        if(empty($_POST['id'])) {
+            $id = $_POST['id'];
         }
         else {
-            echo $chat->checkField($field, $value);
+            $id = 0;
         }
-        // query to database here.
-    } 
-    elseif($task == 'login') {
-        if(empty($_POST['user']) || empty($_POST['pass'])) {
-            return;
-        }
-        $user = $_POST['user'];
-        $password = $_POST['pass'];
-        echo $chat->login($user, $password);
+        echo $chat->retrieveMessages($id, false);
         // query to database.
     }
-    elseif($task == 'register') {
-        if(empty($_POST['user']) || empty($_POST['email']) || empty($_POST['pass'])) {
-            return;
-        }
-        $user = $_POST['user'];
-        $email = $_POST['email'];
-        $password = $_POST['pass'];
-        echo $chat->register($user, $email, $password);
-        // query to database.
-    }
+
     elseif($task == 'retrieve') {
-        echo $chat->retrieveMessages();
-    }
-    elseif($task == "logout") {
-        echo $chat->logout();
+        if(empty($_POST['id'])) {
+           echo $chat->retrieveMessages(0, true); 
+        }
+        else {
+            $id = 0 + $_POST['id'];
+            echo $chat->retrieveMessages($id, true);
+        }
     }
 }
 header('Cache-control: no-cache, must-revalidate');

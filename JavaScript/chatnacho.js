@@ -6,16 +6,35 @@
 // THIS FILE NEEDS TO WORK AS A QUEUE OF TASKS TO DO. 
 // WHEN A NEW MESSAGE IS SENT, WE PUT A TASK IN A QUEUE (PARAMETERS OR WHATEVER).
 // THEN WE START A TIMEOUT. WE WILL CALL AGAIN THE TIMEOUT JUST IN THE CASE THE TABLE IS NOT EMPTY AFTER THAT.
+// 
+// 
+//=======================================================
+//Every task we run will be waiting until the last task has finished, and then will run. It would never occur that one task overlaps other one, but never know, this is asynchronous.  
+//Every time we put a sendMessage task in the table, we will first empty the table. Afterwards we will put a new 
+//Every time we put a login, logout or register task in the table, we will first empty the table.
+//Every time we put a retrieveMessages task in the table, this will be automatically done at the end of every task handler, so we don't really need to bother about this.
+//
+//Whenever we reload the page, we will need to check if the session is running, and in that case, we will put the 'logged'
+//to true. For this, as well as login, register and logout, we should not use the queue, and shoud disable the task manager.
+//HASTA LA POLLA JJJJ
+//=========================================
 
 $('document').ready(function() {
     var $mainFrame = $('#mainFrame');
     var tasks = [];
-    var updateInterval = 500;
+    var updateInterval = 3000;
     var fieldExecuting = false;
     var xhr;
     var logged = false;
     var managerRunning = false;
     var debugMode = true;
+    var $chatWindow, $userChat;
+    var userid = 0, lastid = 0, username = "";
+    var xhr = new XMLHttpRequest();
+    var cycleManager = true;
+    var enableManager = true;
+    // check if the user is logged or not
+    
     loadChat();
 //==========================================================================================
 //                             WITHIN THE CHAT PAGE
@@ -25,28 +44,36 @@ $('document').ready(function() {
      * @returns {undefined}
      */
     function loadChat() {
+        
         $mainFrame.html("");
         $mainFrame.load("chat.html", function() {
+            
             var $chatDiv = $mainFrame.find('#chatDiv'),
+            $welcome = $chatDiv.find('#welcome'),
             $loginLink = $chatDiv.find('#loginLink'),
             $regLink = $chatDiv.find('#regLink'),
-            $logoutLink = $chatDiv.find('#logoutLink'),
-            $chatWindow = $('#chatWindow'),
+            $logoutLink = $chatDiv.find('#logoutLink');
+            $chatWindow = $('#chatWindow');
+            var
             //$chatWindow.html("jdaaaaaaaaaoder");
-            $input = $mainFrame.find('#input'),
-            $userChat = $input.find('#userChat'),
-            $sendBtn = $input.find('#sendBtn'),
+            $input = $mainFrame.find('#input');
+            $userChat = $input.find('#userChat');
+            var $sendBtn = $input.find('#sendBtn'),
             $msgbox = $input.find('#msgbox');
             $loginLink.on('click', loadLogin);
             $regLink.on('click', loadReg);
             $logoutLink.on('click', orderLogout);
+            checkLogin();
             
-            if(logged) {
+            
+            if(logged) { // if the user is logged (has performed login or register)
+                $welcome.html("Welcome back, " + username);
                 $loginLink.addClass('hidden');
                 $regLink.addClass('hidden');
                 $logoutLink.removeClass('hidden');
             }
             else {
+                $welcome.html("Welcome, guest!");
                 $logoutLink.addClass('hidden');
                 $loginLink.removeClass('hidden');
                 $regLink.removeClass('hidden');
@@ -58,12 +85,14 @@ $('document').ready(function() {
                 });
             }
             
-            orderRetrieveMessages();
+            orderRetrieveMessages(); // within the chat page we have to get the messages from the db of course
+            startManager(); // we start the cycle of the task manager
+            //manageTasks();
             
             $sendBtn.on('click', orderSendMessage);
             
             /**
-             * Function triggered when clicking "send message" button.
+             * Function triggered when clicking "send message" button. Sends the message written in the box.
              * @returns {undefined}
              */
             function orderSendMessage() {
@@ -76,61 +105,72 @@ $('document').ready(function() {
                 }
                 alert("send message");
                 
-                var msgPost = "task=sendMessage" + "&" + 
-                "user=" + encodeURIComponent(trim($userChat.val())) + "&" + "message=" + encodeURIComponent(message);   
-                tasks.push(new QueueTask(msgPost, afterResponseSendMessage));
+                var msgPost = "task=sendMessage" + "&user=" + encodeURIComponent(trim($userChat.val())) + 
+                "&message=" + encodeURIComponent(message) + "&id=" + lastid;
+                tasks = [];
+                tasks.push(new QueueTask(msgPost, afterResponseSendMessage, "chatnacho.php"));
                 alert(msgPost);
-                if(!managerRunning) {
+                /*if(!managerRunning) {
                     manageTasks();
-                }
+                }*/
             }
             
             /**
              * What we will do after handling the server response of sending a message to the chat.
-             * @param {type} res
+             * @param {xmldoc} docresponse // the response of the server parsed to xml
              * @returns {undefined}
              */
-            function afterResponseSendMessage(res) {
-                alert(res);
-                if(res === "posted") {
+            function afterResponseSendMessage(docresponse) {
+                //alert(docresponse);
+                alert("sending message");
+                //var posted = "true";
+                var posted = docresponse.getElementsByTagName("posted")[0].firstChild.data.toString();
+                alert("posted: " + posted);
+                if(posted === "true") {
                     alert("post ok");
                     $msgbox.val("");
-                    // the process was ok...
-
-                    //setTimeout(manageTasks, updateInterval);
                 }
                 else {
                     alert("Sorry, there was an error when trying to post your message. Retrying...");
-                    setTimeout("sendMessage(task);", updateInterval);
+                    setTimeout(orderSendMessage, updateInterval);
                 }
+                $chatWindow.html(extractMessages(docresponse));
             }
             
-        
-            function orderRetrieveMessages() {
-                alert("retrieve"); 
-                tasks.push(new QueueTask("task=retrieve", afterResponseRetrieveMessages, true));
-                if(!managerRunning) {
-                    manageTasks();
-                }
-            }
             
-            function afterResponseRetrieveMessages(res) {
-                $chatWindow.html(res);
-            }
-            
-            function orderLogout() {
-                alert("logout"); 
-                tasks.push(new QueueTask("task=logout", function(res) {
-                    if(res === "logout") {
-                        logged = false;
-                    }
-                }));
-            }
             
             function randomGuest() {
                 $userChat.val("Guest" + Math.floor(Math.random() * 1000));
             }
         }); 
+    }
+    
+    /**
+     * Perfoms the logout. I dedided to put this function outside of the chat thing to avoid a recursive call or  the things
+     * about the closure...
+     * @returns {undefined}
+     */
+    function orderLogout() { // I decided to put this function outside of
+        alert("logout"); 
+        //tasks = [];
+        stopManager();
+        //cycleManager = false;
+        executeTask(new QueueTask("task=logout", function(docresponse) {
+            var logoutres = docresponse.getElementsByTagName("logout")[0].firstChild.data.toString();
+            if(logoutres === "true") {
+                logged = false;
+                userid = 0;
+                username = "";
+                //lastid = idres;  
+            }
+            else {
+                alert("Sorry, there was an error while logging out.");
+            }
+            loadChat();
+            $chatWindow.html(extractMessages(docresponse)); // this can be append if we mantain the page hidden...
+            //tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages));
+        }, "login.php"));
+        //manageTasks();
     }
     
     //==========================================================================================
@@ -148,6 +188,8 @@ $('document').ready(function() {
      */
     function loadLogin() {
         alert("load login");
+        stopManager(); // we are not in the chat window anymore so there's no need to do cyclic retrieves of messages.
+        //cycleManager = false;
         $mainFrame.html("");
         //var correct = false;
         
@@ -190,8 +232,9 @@ $('document').ready(function() {
             checkPass($passLogin, $testPas, minlength, flags, "pas");
             
             $goLogin.on('click', sendLogin);
+            
             /**
-             * Function triggered when clicking on "go" button.
+             * Function triggered when clicking on "go" button. Performs checks and the login if everything is ok.
              * @returns {undefined}
              */
             function sendLogin() {
@@ -208,22 +251,20 @@ $('document').ready(function() {
                 
                 var loginPost = "task=login&user=" + encodeURIComponent(trim($userLogin.val())) + "&" + 
                 "pass="  + encodeURIComponent($passLogin.val());
-                tasks.push(new QueueTask(loginPost, afterResponseLogin));
-                if(!managerRunning) {
+                //tasks = [];
+                var loginTask = new QueueTask(loginPost, afterResponseLogin, "login.php");
+                executeTask(loginTask);
+                //tasks.push(new QueueTask(loginPost, afterResponseLogin));
+                
+                /*if(!managerRunning) {
                     manageTasks();
-                }
+                }*/
+                //manageTasks();
                 // send to the login.php or whatever
             }
             
-            function afterResponseLogin(res) {
-                alert(res);
-                alert(parseInt(res));
-                if(parseInt(res) > 0) {
-                    logged = true;
-                }
-                tasks = [];
-                resetManager();
-                loadChat();
+            function afterResponseLogin(docresponse) {
+                loguser(docresponse); 
             }
         });   
     }
@@ -242,6 +283,9 @@ $('document').ready(function() {
      */
     function loadReg() {
         alert("load reg");
+        //tasks = [];
+        stopManager(); // same as in login
+        //cycleManager = false;
         //var us = false, em = false, pas = false, confpas = false;
         var minlength = 6;
         var flags = {us : false, pas : false, confpas : false};
@@ -305,7 +349,7 @@ $('document').ready(function() {
             });
 
             /**
-             * Function triggered when clicking on the "go" button.
+             * Function triggered when clicking on the "go" button. Performs checks and the register if everything is ok.
              * @returns {undefined}
              */
             function sendReg() {
@@ -332,24 +376,22 @@ $('document').ready(function() {
                 "pass=" + encodeURIComponent($passReg.val())];
                 var regPost = regt.join("&");
                 alert(regPost);
-                tasks.push(new QueueTask(regPost, afterResponseRegister));
-                if(!managerRunning) {
+                //tasks = [];
+                var regTask = new QueueTask(regPost, afterResponseRegister, "login.php");
+                executeTask(regTask);
+                //tasks.push(new QueueTask(regPost, afterResponseRegister));
+                /*if(!managerRunning) {
                     alert("run manager");
                     manageTasks();
                 }
                 else {
                     alert("manager is running");
-                }
+                }*/
+                //manageTasks();
             }
             
-            function afterResponseRegister(res) {
-                
-                if(parseInt(res) > 0) {
-                    logged = true;
-                }
-                tasks = [];
-                resetManager();
-                loadChat();
+            function afterResponseRegister(docresponse) {
+                loguser(docresponse);   
             }
         });
     }
@@ -357,38 +399,96 @@ $('document').ready(function() {
     //==========================================================================================
 //                             END OF THE REGISTER THINGS
 //=====================================================================================
+    /**
+     * we start the manager with the tasks to repeat
+     * @returns {undefined}
+     */
+    function startManager() {
+        enableManager = true;
+        manageTasks();
+    }
+    
+    /**
+     * puts the manager to rest and empties the task queue.
+     * @returns {undefined}
+     */
+    function stopManager() {
+        enableManager = false;
+        tasks = [];
+    }
+    
+    /**
+     * simply check if we are logged or not.
+     * @returns {undefined}
+     */
+    function checkLogin() {
+        
+        executeTask(new QueueTask("task=checklogin", function(docresponse) {
+                //userid = docresponse.getElementsByTagName("user_id")[0].firstChild.data;
+                alert("userid: " + userid);
+                
+                if(userid > 0) {
+                    //username = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
+                    alert("username: " + username);
+                    //logged = true;
+                }
+                alert("logged: " + logged);
+            }, "login.php"));
+    }
+    
+    /**
+     * Function 
+     * @param {type} docresponse
+     * @returns {undefined}
+     */
+    function loguser(docresponse) {
+        var idres = docresponse.getElementsByTagName("userid")[0].firstChild.data;
+        var name = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
+        if(idres > 0) {
+            logged = true;
+            userid = idres;  
+            username = name;
+        }
+        else {
+            alert("Sorry, there was an error while logging. Check if your user and password are correct.");
+        }
+        loadChat();
+        //$chatWindow.html(extractMessages(docresponse)); // this can be append if we mantain the page hidden...
+        //tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages));
+    }
+    
+    function orderRetrieveMessages() {
+        alert("retrieve"); 
+        tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages, "chatnacho.php"));
+        /*if(!managerRunning) {
+            manageTasks();
+        }*/
+    }
+
+    function afterResponseRetrieveMessages(docresponse) {
+        var contentToAppend = extractMessages(docresponse);
+        $chatWindow.append(contentToAppend);
+    }
     
     /**
      * Manages a queue of tasks. Also there are things missing here...
      * @returns {undefined}
      */
     function manageTasks() {
-        managerRunning = true;
-        if(tasks.length > 0) {
-            var next = tasks.shift();
-            executeTask(next);
-            /*
-            var nextTask = next.task;
-            //alert(nextTask);
-            var taskName = nextTask.substring(nextTask.indexOf('=')+1, nextTask.indexOf('&'));
-            if(taskName === "login") {
-                postLogin(nextTask);
-            }
-            else if(taskName === "register") {
-                alert("task register");
-                postReg(nextTask);
-            }
-            else if(taskName === "retrieve") {
-                retrieveMessages(nextTask);
-            }
-            else if(taskName === "logout") {
-                //logout(nextTask);
+        //managerRunning = true;
+        if(enableManager) {
+            if(tasks.length > 0) {
+                var next = tasks.shift();
                 executeTask(next);
             }
-            else if(taskName === "sendMessage") {
-                sendMessage(nextTask);
-            }*/
+            if(cycleManager) {
+                setTimeout(manageTasks, updateInterval);
+            } 
+            else {
+                tasks = [];
+            }
         }
+        //managerRunning = false;
     }
     
     /**
@@ -399,7 +499,7 @@ $('document').ready(function() {
      * @returns {undefined}
      */
     function executeTask(qtask) {
-        xhr = new XMLHttpRequest();
+        //xhr = new XMLHttpRequest();
         if(xhr)
         {
             try
@@ -408,18 +508,20 @@ $('document').ready(function() {
                 // is already in progress
                 if (xhr.readyState === 4 || xhr.readyState === 0)
                 {
-                    xhr.open("POST", 'chatnacho.php', true);
+                    xhr.open("POST", qtask.file, true);
                     xhr.setRequestHeader("Content-Type",
                     "application/x-www-form-urlencoded");
                     xhr.onreadystatechange = function() {
-                        handleServerResponse(qtask.callback, qtask.complex);
+                        handleServerResponse(qtask.callback, qtask.task);
                     }       
                     xhr.send(qtask.task);
                 }
                 else
                 {
                     // we will try again
-                    setTimeout("executeTask(task, callback);", updateInterval);
+                    setTimeout(function() {
+                        executeTask(qtask);
+                    }, updateInterval);
                 }
             }
             catch(e)
@@ -431,10 +533,10 @@ $('document').ready(function() {
     
     /**
      * General function. Handles the response for the former one.
-     * @param {type} callback
+     * @param {Function} callback
      * @returns {undefined}
      */
-    function handleServerResponse(callback, complex) {
+    function handleServerResponse(callback, task) {
         // continue if the process is completed
         if (xhr.readyState === 4)
         {
@@ -445,26 +547,29 @@ $('document').ready(function() {
                 try
                 {
                     // process the server's response
+                    
                     var response = xhr.responseText;
+                    alert("task: " +  task + "\nresponse: " + response);
                     if (response.indexOf("ERRNO") >= 0
                     || response.indexOf("error:") >= 0
                     || response.length === 0)
                         throw(response.length === 0 ? "Void server response." : response);
-                    
+
                     var parser = new DOMParser();
                     var xmlResponse = parser.parseFromString(response, "application/xml"), // IE cannot read the response XML thing or so seems to be...
                     docresponse = xmlResponse.documentElement;
-                    var res;
+                    //alert(response);
+                    /*var res;
                     if(typeof complex === "undefined") {
                         res = docresponse.firstChild.data.toString();
                     }
                     
                     else {
                         res = extractMessages(docresponse);
-                    }
+                    }*/
                     
                     if(typeof callback !== "undefined") {
-                        callback(res);
+                        callback(docresponse);
                     }
                     //resetManager();
                 }
@@ -487,25 +592,46 @@ $('document').ready(function() {
         // retrieve the arrays from the server's response
         //idArray = docresponse.getElementsByTagName("id");
         //colorArray = docresponse.getElementsByTagName("color");
-        var nameArray = docresponse.getElementsByTagName("user_name");
-        var timeArray = docresponse.getElementsByTagName("time");
-        var messageArray = docresponse.getElementsByTagName("message");
-        var res = [];
-        for(var i = 0, l = nameArray.length; i < l; i ++) {
-            var name = nameArray[i].firstChild.data.toString(),
-            time = timeArray[i].firstChild.data.toString(),
-            message = messageArray[i].firstChild.data.toString();
-            res.push('<div>[' + time + '] ' + name + ' said: <br/>' + 
-            message + '</div>');
+        var idArray = docresponse.getElementsByTagName("mess_id");
+        var txtres ="";
+        if(idArray.length > 0) {
+            var nameArray = docresponse.getElementsByTagName("user_name");
+            var timeArray = docresponse.getElementsByTagName("time");
+            var messageArray = docresponse.getElementsByTagName("message");
+
+            //alert(idArray);
+            var res = [];
+            for(var i = 0, l = nameArray.length; i < l; i ++) {
+                var name = nameArray[i].firstChild.data.toString(),
+                time = timeArray[i].firstChild.data.toString(),
+                message = messageArray[i].firstChild.data.toString();
+                res.push('<div>[' + time + '] ' + name + ' said: <br/>' + 
+                message + '</div>');
+            }
+            lastid = idArray[idArray.length - 1].firstChild.data;
+            alert(lastid);
+            txtres = res.join("");
         }
-        return res.join("");
+        //setTimeout(orderRetrieveMessages, updateInterval);
+        if(cycleManager) {
+            tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages, "chatnacho.php"));
+        }
+        return txtres;
         //setTimeout("requestNewMessages();", updateInterval);
     }
     
-    function QueueTask(task, callback, complex) { // this is designed in order to call a function with no parameters...
+    
+    /**
+     * The constructor in java for  the company
+     * @param {type} task
+     * @param {type} callback
+     * @param {type} file
+     * @returns {chatnacho_L22.QueueTask}
+     */
+    function QueueTask(task, callback, file) { // this is designed in order to call a function with no parameters...
         this.task = task;
         this.callback = callback;
-        this.complex = complex;
+        this.file = file;
     }
     
 
@@ -529,6 +655,21 @@ $('document').ready(function() {
         //return patt.test(a);
     }
     
+    /**
+     * Generalized function go en
+     * @param {type} $input
+     * @param {type} field
+     * @param {type} flags
+     * @param {type} flag
+     * @param {type} $output
+     * @param {type} regex
+     * @param {type} minlength
+     * @param {type} msgMatch
+     * @param {type} msgNoMatch
+     * @param {type} vf
+     * @param {type} op
+     * @returns {undefined}
+     */
     function checkField($input, field, flags, flag, $output, regex, minlength, msgMatch, msgNoMatch, vf, op) {
         $input.on("input", function() {
             //alert(op);
@@ -555,6 +696,15 @@ $('document').ready(function() {
         });
     }
     
+    /**
+     * checks if the entered password is good in its regex, etc.
+     * @param {type} $input
+     * @param {type} $output
+     * @param {type} minlength
+     * @param {type} flags
+     * @param {type} flag
+     * @returns {undefined}
+     */
     function checkPass($input, $output, minlength, flags, flag) {
         $input.on("input", function() {
             if(match(this.value, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength, $output)) {
@@ -580,16 +730,24 @@ $('document').ready(function() {
         }
     }*/
     
+    /**
+     * checks if a certain value for a field is in the database.
+     * @param {type} value
+     * @param {type} field
+     * @param {type} callback
+     * @param {type} op
+     * @returns {undefined}
+     */
     function fieldIsInDatabase(value, field, callback, op) {
         //alert("ehhh " + op);
         var task = "task=fieldcheck&field=" + field + "&" + "value=" + value;
-        alert(task);
+        //alert(task);
         if(typeof op !== 'undefined' && op !== "") {
             task += "&op=" + op;
         }
-        alert(task);
+        //alert(task);
         //tasks.push(task);
-        xhr = new XMLHttpRequest();
+        //xhr = new XMLHttpRequest();
         if(xhr)
         {
             try
@@ -599,7 +757,7 @@ $('document').ready(function() {
                 if (xhr.readyState === 4 || xhr.readyState === 0)
                 {
                     // call the server page to execute the server-side operation
-                    xhr.open("POST", 'chatnacho.php', true);
+                    xhr.open("POST", 'login.php', true);
                     xhr.setRequestHeader("Content-Type",
                     "application/x-www-form-urlencoded");
                     xhr.onreadystatechange = function() {
@@ -611,7 +769,9 @@ $('document').ready(function() {
                 else
                 {
                     // we will check again for new messages
-                    setTimeout("fieldIsInDatabase(value, field, callback, op);", updateInterval);
+                    setTimeout(function() {
+                        fieldIsInDatabase(value, field, callback, op);
+                    }, updateInterval);
                 }
             }
             catch(e)
@@ -621,6 +781,11 @@ $('document').ready(function() {
         }
     }
     
+    /**
+     * handler for the server response of the former function.
+     * @param {type} callback
+     * @returns {undefined}
+     */
     function handleFieldInDatabase(callback)
     {
         //alert("handling field state " + xhr.readyState);
@@ -665,15 +830,15 @@ $('document').ready(function() {
         }
     }
     
-    function stopManager() {
+    /*function stopManager() {
         managerRunning = false;
         //manageTasks();
-    }
+    }*/
     
-    function resetManager() {
+    /*function resetManager() {
         managerRunning = false;
         tasks.push("retrieve");
-    }
+    }*/
     
     function changeToLogged() {
         logged = true;  
@@ -702,21 +867,9 @@ $('document').ready(function() {
 });
 
 /*
- * we want to manage:
- * login and checks
- * registering and checks
- * chat messages
- * we can use a php class with some methods, and then use a php file to tell which method to run.
+ * Everything here was a tremendous bad thing and now we try to fix it bit by bit.
+ * I put a separate file for all user login purposes, called login.php, calling login.class.php.
  */
-// WE HAVE JUST MADE THE INTERFACE OMG WHAT A FUCKING SHEET
-// CORRECTION: WE NEED TO REMOVE THE OPTIONS FOR THE CHECKING THINGS, AND MAYBE LEAVE JUST THE ONE FOR DELETING ALL MESSAGES.
-// THE CHECK OF THE FIELDS WILL BE CARRIED OUT IN OTHER FILE MOST PROBABLY. BECAUSE IT NEEDS TO BE FAST!!!
-// LOGIN AND REGISTER CANNOT BE IN THE QUEUE. NONETHELESS, THEY CAN BE CARRIED OUT IN THE SAME PHP FILE, BUT WHEN
-// ANY OF THEM IS CALLED, MEANING THE USER WANTS TO LOGIN OR WANTS TO REGISTER, WE WILL EMPTY THE TASKS ARRAY.
-// IT MAKES NO SENSE THAT WE KEEP PUBLISHING MESSAGES IN THE CHAT EVEN AFTER LEAVING IT TO PERFORM LOGIN OR REGISTER.
-// SO: WHEN CHECKING FIELDS, AN SPECIFIC PHP FILE PERFORM THE TASK.
-// AND WHEN LOGIN OR REGISTER, THE TASKS ARRAY IS EMPTIED.
-// 
 
 
 

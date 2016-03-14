@@ -26,6 +26,7 @@ and open the template in the editor.
     background-color: #B0E2FF;
     border: 2px solid red;
     border-radius: 10px;
+    overflow-y: scroll;
 }
 
 .chatToolbar {
