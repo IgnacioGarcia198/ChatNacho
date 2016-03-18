@@ -2,11 +2,12 @@
 
 require_once 'chatnacho.class.php'; // we use this class. NOTE THAT IN THIS CONTEXT REQUIRE_ONCE WORKS EXACTLY THE SAME AS IMPORT IN JAVA.
 function work() {
+    $alone = false;
     if(empty($_POST['task'])) {
         return;
     }
     $task = $_POST['task']; // WE RETRIEVE THE MODE HERE BY POST.
-    //$id = 0;
+    $id = 0;
     $chat = new Chatnacho();
     
     if($task == 'sendMessage') {
@@ -16,25 +17,22 @@ function work() {
         $user = $_POST['user'];
         $message = $_POST['message'];
         echo $chat->postNewMessage($user, $message);
-        if(empty($_POST['id'])) {
+        if(!empty($_POST['id'])) {
             $id = $_POST['id'];
         }
-        else {
-            $id = 0;
-        }
-        echo $chat->retrieveMessages($id, false);
+        $alone = false;
+        //echo $chat->retrieveMessages($id, false);
         // query to database.
     }
 
     elseif($task == 'retrieve') {
-        if(empty($_POST['id'])) {
-           echo $chat->retrieveMessages(0, true); 
-        }
-        else {
-            $id = 0 + $_POST['id'];
-            echo $chat->retrieveMessages($id, true);
+        if(!empty($_POST['id'])) {
+           $id = $_POST['id'];
+           $alone = true;    
         }
     }
+    
+    echo $chat->retrieveMessages($id, $alone);
 }
 header('Cache-control: no-cache, must-revalidate');
 header('Pragma: no-cache');

@@ -3,6 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
+// SHOULD DO A LOT NEW
+// WE CAN GENERALIZE THE HANDLER FOR XMLRESPONSE AND ADD THE CALLBACK BUT WE NEED TWO DIFFERENT FUNCTIONS:
+// ONE OF THEM WILL TAKE NO PARAMETER, JUST EXTRACT NEXT TASK FROM QUEUE. CAN DO IT WITH ADDITIONAL PARAMETER.
+// AT THE END OF THE GENERAL THING AFTER THE CALLBACK, WE WILL SET THE TIMEOUT TO REPEAT RETRIEBEMESSAGES.
+// BUT WE WILL DO THAT ONLY IN THE FUNCTION FOR THE TASKS IN QUEUE. WE CAN JUST CHECK IF TYPE OF PARAMETER IS ARRAY.
 // THIS FILE NEEDS TO WORK AS A QUEUE OF TASKS TO DO. 
 // WHEN A NEW MESSAGE IS SENT, WE PUT A TASK IN A QUEUE (PARAMETERS OR WHATEVER).
 // THEN WE START A TIMEOUT. WE WILL CALL AGAIN THE TIMEOUT JUST IN THE CASE THE TABLE IS NOT EMPTY AFTER THAT.
@@ -18,21 +23,28 @@
 //to true. For this, as well as login, register and logout, we should not use the queue, and shoud disable the task manager.
 //HASTA LA POLLA JJJJ
 //=========================================
+// THIS IS A RUBBISH. MUST START WITH A PART AND MAKE IT WORK PERFECTLY BEFORE PUTTING MORE PARTS.
 
 $('document').ready(function() {
     var $mainFrame = $('#mainFrame');
     var tasks = [];
     var updateInterval = 3000;
-    var fieldExecuting = false;
+    //var fieldExecuting = false;
+    var tries = 0; // counter for tries when posting a message
     var xhr;
     var logged = false;
-    var managerRunning = false;
+    //var managerRunning = false;
     var debugMode = true;
     var $chatWindow, $userChat;
     var userid = 0, lastid = 0, username = "";
     var xhr = new XMLHttpRequest();
-    var cycleManager = true;
-    var enableManager = true;
+    var manageQueue = false;
+    var currentQtask;
+    //var enableManager = true;
+    
+    var $chatDiv, $welcome,$loginLink,$regLink,$logoutLink;
+    var $input;
+    var $sendBtn,$msgbox;
     // check if the user is logged or not
     
     loadChat();
@@ -44,21 +56,25 @@ $('document').ready(function() {
      * @returns {undefined}
      */
     function loadChat() {
+        // WE SHOULD TRY TO MAKE EACH PAGE AN INDIVIDUAL BLOCK WITH ITS OWN JAVASCRIPT AND THEN IT WILL BE LOADED.
+        // BUT WE COULD NEED ACCESS TO SOME GLOBAL VARIABLES. NOT SURE, SINCE WE CAN USE ADDEVENTLISTENER AND
+        // JUST PASS A LISTENER FUNCTION OR HANDLER WITH SOME MORE VARIABLES.
+        // IT SHOULDNT BE THAT BAD. THE REAL PROBLEM COULD BE I DID STH TOO COMPLEX FOR NOTHING...
         
         $mainFrame.html("");
         $mainFrame.load("chat.html", function() {
-            
-            var $chatDiv = $mainFrame.find('#chatDiv'),
-            $welcome = $chatDiv.find('#welcome'),
-            $loginLink = $chatDiv.find('#loginLink'),
-            $regLink = $chatDiv.find('#regLink'),
+            tasks = [];
+            $chatDiv = $mainFrame.find('#chatDiv');
+            $welcome = $chatDiv.find('#welcome');
+            $loginLink = $chatDiv.find('#loginLink');
+            $regLink = $chatDiv.find('#regLink');
             $logoutLink = $chatDiv.find('#logoutLink');
             $chatWindow = $('#chatWindow');
-            var
+
             //$chatWindow.html("jdaaaaaaaaaoder");
             $input = $mainFrame.find('#input');
             $userChat = $input.find('#userChat');
-            var $sendBtn = $input.find('#sendBtn'),
+            $sendBtn = $input.find('#sendBtn');
             $msgbox = $input.find('#msgbox');
             $loginLink.on('click', loadLogin);
             $regLink.on('click', loadReg);
@@ -66,28 +82,8 @@ $('document').ready(function() {
             checkLogin();
             
             
-            if(logged) { // if the user is logged (has performed login or register)
-                $welcome.html("Welcome back, " + username);
-                $loginLink.addClass('hidden');
-                $regLink.addClass('hidden');
-                $logoutLink.removeClass('hidden');
-            }
-            else {
-                $welcome.html("Welcome, guest!");
-                $logoutLink.addClass('hidden');
-                $loginLink.removeClass('hidden');
-                $regLink.removeClass('hidden');
-                $msgbox.on("focus", function() {
-                    var val = $userChat.val();
-                    if(typeof val === "undefined" || val === "") {
-                        randomGuest();
-                    } 
-                });
-            }
             
-            orderRetrieveMessages(); // within the chat page we have to get the messages from the db of course
-            startManager(); // we start the cycle of the task manager
-            //manageTasks();
+            
             
             $sendBtn.on('click', orderSendMessage);
             
@@ -107,7 +103,7 @@ $('document').ready(function() {
                 
                 var msgPost = "task=sendMessage" + "&user=" + encodeURIComponent(trim($userChat.val())) + 
                 "&message=" + encodeURIComponent(message) + "&id=" + lastid;
-                tasks = [];
+                //tasks = [];
                 tasks.push(new QueueTask(msgPost, afterResponseSendMessage, "chatnacho.php"));
                 alert(msgPost);
                 /*if(!managerRunning) {
@@ -131,18 +127,35 @@ $('document').ready(function() {
                     $msgbox.val("");
                 }
                 else {
-                    alert("Sorry, there was an error when trying to post your message. Retrying...");
-                    setTimeout(orderSendMessage, updateInterval);
+                    if(tries < 3) {
+                        alert("Sorry, there was an error when trying to post your message. Retrying...");
+                        // This is very bad. We cannot put the task again in the queue to repeat, 
+                        // because in that case, it will be executed again too late.
+                        // So we need it to repeat but without putting this task in the queue again.
+                        // Actually, this could be a bad idea, we can do it but we will need a limit of repeats...
+                        // So, we can just execute the task without queue or put it in the head of the queue.
+                        tries ++;
+                        setTimeout(function() {
+                            executeTask(currentQtask);
+                        }, updateInterval);
+                    }
+                    else {
+                        alert("Sorry, there was an error and was impossible to post your message.");
+                        tries = 0;
+                        setTimeout(executeTask, updateInterval); // restart the cycle
+                    }
                 }
                 $chatWindow.html(extractMessages(docresponse));
             }
             
             
             
-            function randomGuest() {
-                $userChat.val("Guest" + Math.floor(Math.random() * 1000));
-            }
+            
         }); 
+    }
+    
+    function randomGuest() {
+        $userChat.val("Guest" + Math.floor(Math.random() * 1000));
     }
     
     /**
@@ -423,17 +436,56 @@ $('document').ready(function() {
      */
     function checkLogin() {
         
-        executeTask(new QueueTask("task=checklogin", function(docresponse) {
-                //userid = docresponse.getElementsByTagName("user_id")[0].firstChild.data;
-                alert("userid: " + userid);
-                
-                if(userid > 0) {
-                    //username = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
-                    alert("username: " + username);
-                    //logged = true;
-                }
-                alert("logged: " + logged);
-            }, "login.php"));
+        // THIS EXECUTE TASK IS TOO GENERAL, FOR REGISTER AND LOGIN WE SHOULDNT NEED ANY QUEUE.
+        // BUT ITS TRUE THAT WHEN LEAVING THE CHAT PAGE TO GO TO LOGIN WE MUST EMPTY THE QUEUE, WONT BE USED AT THE MOMENT.
+        // ITS OK, ITS NOT IN THE QUEUE
+        executeTask(new QueueTask("task=checklogin", function(docresponse) { // ALSO MUST MAKE ANOTHER SEPARATED QUEUE FOR LOGIN AND REGISTER THINGS, ETC.
+            $userid = docresponse.getElementsByTagName("user_id")[0].firstChild.data;
+            alert("userid: " + userid);
+
+            if(userid > 0) {
+                username = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
+                alert("username: " + username);
+                logged = true;
+            }
+            alert("logged: " + logged);
+            
+            welcomeUser();
+            manageQueue = true;
+            executeTask();
+            //after we know if the user is logged or not we put the suitable greeting, also we can make the random user
+            //or disable the user textbox with the name of the user not possible to change.
+
+        }, "login.php"));
+    }
+    
+    function welcomeUser() {
+        // PROBLEM: THIS SHOULD BE CALLBACK AFTER CHECKING THE LOGIN.
+        // SOLVED.
+        if(logged) { // if the user is logged (has performed login or register)
+            $welcome.html("Welcome back, " + username);
+            console.log("done username");
+            $loginLink.addClass('hidden');
+            $regLink.addClass('hidden');
+            $logoutLink.removeClass('hidden');
+        }
+        else {
+            $welcome.html("Welcome, guest!");
+            console.log("done guest");
+            $logoutLink.addClass('hidden');
+            $loginLink.removeClass('hidden');
+            $regLink.removeClass('hidden');
+            $msgbox.on("focus", function() {
+                var val = $userChat.val();
+                if(typeof val === "undefined" || val === "") {
+                    randomGuest();
+                } 
+            });
+        }
+
+        //orderRetrieveMessages(); // within the chat page we have to get the messages from the db of course
+        //startManager(); // we start the cycle of the task manager
+        //manageTasks();
     }
     
     /**
@@ -474,7 +526,7 @@ $('document').ready(function() {
      * Manages a queue of tasks. Also there are things missing here...
      * @returns {undefined}
      */
-    function manageTasks() {
+    /*function manageTasks() {
         //managerRunning = true;
         if(enableManager) {
             if(tasks.length > 0) {
@@ -489,7 +541,7 @@ $('document').ready(function() {
             }
         }
         //managerRunning = false;
-    }
+    }*/
     
     /**
      * General function, it executes the tasks being used from a higher layer of functions.
@@ -500,6 +552,7 @@ $('document').ready(function() {
      */
     function executeTask(qtask) {
         //xhr = new XMLHttpRequest();
+        var queue = false;
         if(xhr)
         {
             try
@@ -508,17 +561,28 @@ $('document').ready(function() {
                 // is already in progress
                 if (xhr.readyState === 4 || xhr.readyState === 0)
                 {
+                     
+                    if(typeof qtask === "undefined") { // we dont put parameters and that means take next task from queue
+                        queue = true;
+                        if(tasks.length > 0) { // we have tasks in queue
+                            qtask = tasks.shift();
+                        }
+                        else { // we dont have so just retrieve messages
+                            qtask = new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages, "chatnacho.php");
+                        }
+                    }
+                    currentQtask = qtask;
                     xhr.open("POST", qtask.file, true);
                     xhr.setRequestHeader("Content-Type",
                     "application/x-www-form-urlencoded");
                     xhr.onreadystatechange = function() {
-                        handleServerResponse(qtask.callback, qtask.task);
+                        handleServerResponse(qtask.callback, qtask.task, queue);
                     }       
                     xhr.send(qtask.task);
                 }
                 else
                 {
-                    // we will try again
+                    // we will try again waiting for the state of the browser to be the correct one.
                     setTimeout(function() {
                         executeTask(qtask);
                     }, updateInterval);
@@ -536,7 +600,7 @@ $('document').ready(function() {
      * @param {Function} callback
      * @returns {undefined}
      */
-    function handleServerResponse(callback, task) {
+    function handleServerResponse(callback, task, queue) {
         // continue if the process is completed
         if (xhr.readyState === 4)
         {
@@ -570,6 +634,10 @@ $('document').ready(function() {
                     
                     if(typeof callback !== "undefined") {
                         callback(docresponse);
+                    }
+                    // run the cycle again
+                    if(queue && manageQueue) {
+                         setTimeout(executeTask, updateInterval);
                     }
                     //resetManager();
                 }
@@ -613,9 +681,9 @@ $('document').ready(function() {
             txtres = res.join("");
         }
         //setTimeout(orderRetrieveMessages, updateInterval);
-        if(cycleManager) {
+        /*if(cycleManager) {
             tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages, "chatnacho.php"));
-        }
+        }*/
         return txtres;
         //setTimeout("requestNewMessages();", updateInterval);
     }
