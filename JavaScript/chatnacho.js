@@ -201,7 +201,8 @@ $('document').ready(function() {
      */
     function loadLogin() {
         alert("load login");
-        stopManager(); // we are not in the chat window anymore so there's no need to do cyclic retrieves of messages.
+        //stopManager(); // we are not in the chat window anymore so there's no need to do cyclic retrieves of messages.
+        manageQueue = false;
         //cycleManager = false;
         $mainFrame.html("");
         //var correct = false;

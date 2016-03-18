@@ -27,9 +27,9 @@ function work() {
 
     elseif($task == 'retrieve') {
         if(!empty($_POST['id'])) {
-           $id = $_POST['id'];
-           $alone = true;    
+           $id = $_POST['id'];    
         }
+        $alone = true;
     }
     
     echo $chat->retrieveMessages($id, $alone);
