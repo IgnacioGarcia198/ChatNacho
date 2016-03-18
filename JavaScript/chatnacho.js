@@ -51,6 +51,9 @@ $('document').ready(function() {
 //==========================================================================================
 //                             WITHIN THE CHAT PAGE
 //=====================================================================================
+    function init() {
+        lastid = 0;
+    }
     /**
      * Loads the chat page from its file
      * @returns {undefined}
@@ -60,7 +63,7 @@ $('document').ready(function() {
         // BUT WE COULD NEED ACCESS TO SOME GLOBAL VARIABLES. NOT SURE, SINCE WE CAN USE ADDEVENTLISTENER AND
         // JUST PASS A LISTENER FUNCTION OR HANDLER WITH SOME MORE VARIABLES.
         // IT SHOULDNT BE THAT BAD. THE REAL PROBLEM COULD BE I DID STH TOO COMPLEX FOR NOTHING...
-        
+        init();
         $mainFrame.html("");
         $mainFrame.load("chat.html", function() {
             tasks = [];
@@ -145,12 +148,10 @@ $('document').ready(function() {
                         setTimeout(executeTask, updateInterval); // restart the cycle
                     }
                 }
-                $chatWindow.html(extractMessages(docresponse));
+                //$chatWindow.html(extractMessages(docresponse));
+                extractMessages(docresponse);
             }
-            
-            
-            
-            
+               
         }); 
     }
     
@@ -174,13 +175,14 @@ $('document').ready(function() {
                 logged = false;
                 userid = 0;
                 username = "";
+                alert("succesful logout");
                 //lastid = idres;  
             }
             else {
                 alert("Sorry, there was an error while logging out.");
             }
             loadChat();
-            $chatWindow.html(extractMessages(docresponse)); // this can be append if we mantain the page hidden...
+            //$chatWindow.html(extractMessages(docresponse)); // this can be append if we mantain the page hidden...
             //tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages));
         }, "login.php"));
         //manageTasks();
@@ -298,7 +300,8 @@ $('document').ready(function() {
     function loadReg() {
         alert("load reg");
         //tasks = [];
-        stopManager(); // same as in login
+        //stopManager(); // same as in login
+        manageQueue = false;
         //cycleManager = false;
         //var us = false, em = false, pas = false, confpas = false;
         var minlength = 6;
@@ -441,15 +444,16 @@ $('document').ready(function() {
         // BUT ITS TRUE THAT WHEN LEAVING THE CHAT PAGE TO GO TO LOGIN WE MUST EMPTY THE QUEUE, WONT BE USED AT THE MOMENT.
         // ITS OK, ITS NOT IN THE QUEUE
         executeTask(new QueueTask("task=checklogin", function(docresponse) { // ALSO MUST MAKE ANOTHER SEPARATED QUEUE FOR LOGIN AND REGISTER THINGS, ETC.
-            $userid = docresponse.getElementsByTagName("user_id")[0].firstChild.data;
-            alert("userid: " + userid);
+            userid = docresponse.getElementsByTagName("user_id")[0].firstChild.data;
+            alert("checking login: userid: " + userid);
 
             if(userid > 0) {
                 username = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
-                alert("username: " + username);
+                //alert("username: " + username);
+                $userChat.val(username);
                 logged = true;
             }
-            alert("logged: " + logged);
+            //alert("logged: " + logged);
             
             welcomeUser();
             manageQueue = true;
@@ -463,19 +467,22 @@ $('document').ready(function() {
     function welcomeUser() {
         // PROBLEM: THIS SHOULD BE CALLBACK AFTER CHECKING THE LOGIN.
         // SOLVED.
+        var $logreg = $chatDiv.find('#logreg');
         if(logged) { // if the user is logged (has performed login or register)
-            $welcome.html("Welcome back, " + username);
+            $welcome.html("Welcome back, <b>" + username + "</b>");
             console.log("done username");
-            $loginLink.addClass('hidden');
-            $regLink.addClass('hidden');
+            $logreg.addClass('hidden');
+            //$loginLink.addClass('hidden');
+            //$regLink.addClass('hidden');
             $logoutLink.removeClass('hidden');
         }
         else {
             $welcome.html("Welcome, guest!");
             console.log("done guest");
             $logoutLink.addClass('hidden');
-            $loginLink.removeClass('hidden');
-            $regLink.removeClass('hidden');
+            //$loginLink.removeClass('hidden');
+            //$regLink.removeClass('hidden');
+            $logreg.removeClass('hidden');
             $msgbox.on("focus", function() {
                 var val = $userChat.val();
                 if(typeof val === "undefined" || val === "") {
@@ -497,17 +504,19 @@ $('document').ready(function() {
     function loguser(docresponse) {
         var idres = docresponse.getElementsByTagName("userid")[0].firstChild.data;
         var name = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
+        alert("id: " + idres +"; name: " + name);
         if(idres > 0) {
             logged = true;
             userid = idres;  
             username = name;
+            
         }
         else {
             alert("Sorry, there was an error while logging. Check if your user and password are correct.");
         }
         loadChat();
         //$chatWindow.html(extractMessages(docresponse)); // this can be append if we mantain the page hidden...
-        //tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages));
+        //tasks.push(new QueueTask("task=&id=" + lastid, afterResponseRetrieveMessages));
     }
     
     function orderRetrieveMessages() {
@@ -669,25 +678,45 @@ $('document').ready(function() {
             var messageArray = docresponse.getElementsByTagName("message");
 
             //alert(idArray);
-            var res = [];
+            //var res = [];
             for(var i = 0, l = nameArray.length; i < l; i ++) {
                 var name = nameArray[i].firstChild.data.toString(),
                 time = timeArray[i].firstChild.data.toString(),
                 message = messageArray[i].firstChild.data.toString();
-                res.push('<div>[' + time + '] ' + name + ' said: <br/>' + 
+                displayMessage('<div>[' + time + '] ' + name + ' said: <br/>' + 
                 message + '</div>');
+                //res.push('<div>[' + time + '] ' + name + ' said: <br/>' + 
+                //message + '</div>');
             }
             lastid = idArray[idArray.length - 1].firstChild.data;
             alert(lastid);
-            txtres = res.join("");
+            //txtres = res.join("");
         }
         //setTimeout(orderRetrieveMessages, updateInterval);
         /*if(cycleManager) {
             tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages, "chatnacho.php"));
         }*/
-        return txtres;
+        //return txtres;
         //setTimeout("requestNewMessages();", updateInterval);
     }
+    
+    /**
+            * Just puts a single message on the chat window. Also, if the window is full, it scrolls!
+            * @param {type} message
+            * @returns {undefined}
+            */
+           function displayMessage(message)
+           {
+               // get the scroll object
+               //var oScroll = document.getElementById("scroll");
+               // check if the scroll is down
+               var cw = $chatWindow[0];
+               var scrollDown = (cw.scrollHeight - cw.scrollTop <= cw.offsetHeight);
+               // display the message
+               $chatWindow.append(message);
+               cw.scrollTop = scrollDown ? cw.scrollHeight :
+               cw.scrollTop;
+           }
     
     
     /**

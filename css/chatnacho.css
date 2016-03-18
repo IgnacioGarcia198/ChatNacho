@@ -27,6 +27,8 @@ and open the template in the editor.
     border: 2px solid red;
     border-radius: 10px;
     overflow-y: scroll;
+    padding-left: 10px;
+    margin-top: 20px;
 }
 
 .chatToolbar {
@@ -40,6 +42,10 @@ and open the template in the editor.
     text-align: center;
     vertical-align: middle;
     padding: 3px 10px;
+}
+
+.myLink {
+    font-weight: bold;
 }
 
 .myLink:hover {

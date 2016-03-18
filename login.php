@@ -48,13 +48,13 @@ function work() {
     
     elseif($task == "logout") {
         echo $loginNacho->logout();
-        if(empty($_POST['id'])) {
+        if(!empty($_POST['id'])) {
             $id = $_POST['id'];
         }
         else {
             $id = 0;
         }
-        echo $loginNacho->retrieveMessages($id, false);
+        //echo $loginNacho->retrieveMessages($id, false);
     }
     
     elseif($task == "checklogin") {

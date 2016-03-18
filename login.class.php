@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 require_once 'nacho_error_handler.php';
+session_start();
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -17,6 +18,7 @@ class Login {
     
     function __construct() {
         $this->msqli = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE);
+        $this->firephp = FirePHP::getInstance(true);
     }
     
     /**
@@ -85,7 +87,7 @@ class Login {
         "' . $email . '",
         "' . $pass . '")';
         $result = $this->msqli->query($query);
-        $query = 'SELECT user_id, user_name FROM users WHERE email = ' + $email;
+        $query = 'SELECT user_id, user_name FROM users WHERE email = "' . $email . '"';
         $result = $this->msqli->query($query);
         if($result->num_rows == 1) {
             $row = $result->fetch_row();
@@ -93,6 +95,7 @@ class Login {
             $re = $row[0];
             $re1 = $row[1];
             $_SESSION['user_id'] = $re;
+            $_SESSION['username'] = $re1;
         }
         else {
             $re = 0;
@@ -109,11 +112,12 @@ class Login {
         unset($_SESSION['username']);
         $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
         if(empty($_SESSION['user_id'])) {
-            $response .= '<response><logoout>true</logout>';
+            $response .= '<response><logout>true</logout>';
         }
         else {
-            $response .= '<response><logoout>false</logout>';
+            $response .= '<response><logout>false</logout>';
         }
+        $response.= '</response>';
         
         return $response;
     }
@@ -122,10 +126,16 @@ class Login {
         $resp = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?><response>';
         $userid = 0;
         $username = " ";
+        
         //return $resp;
         if(!(empty($_SESSION['user_id']) || empty($_SESSION['username']))) {
             $userid = $_SESSION['user_id'];
             $username = $_SESSION['username'];
+            $this->firephp->log($_SESSION['user_id'], 'session id');
+            $this->firephp->log($_SESSION['username'], 'session username');
+        }
+        else {
+            $this->firephp->log('is empty', 'the session user an id');
         }
         $resp .= '<user_id>' . $userid . '</user_id>';
         $resp .= '<username>' . $username . '</username></response>';
