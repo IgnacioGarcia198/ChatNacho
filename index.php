@@ -15,6 +15,7 @@ and open the template in the editor.
         <!--<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">-->
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
         <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="JavaScript/sha1function.js"></script>
         <link rel="stylesheet" href="css/chatnacho.css" type="text/css">
     </head>
     <body>

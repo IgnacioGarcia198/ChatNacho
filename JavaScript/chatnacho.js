@@ -266,7 +266,7 @@ $('document').ready(function() {
                 }
                 
                 var loginPost = "task=login&user=" + encodeURIComponent(trim($userLogin.val())) + "&" + 
-                "pass="  + encodeURIComponent($passLogin.val());
+                "pass="  + encodeURIComponent(sha1($passLogin.val()));
                 //tasks = [];
                 var loginTask = new QueueTask(loginPost, afterResponseLogin, "login.php");
                 executeTask(loginTask);
@@ -390,7 +390,7 @@ $('document').ready(function() {
                 alert("no errror");
                 var regt = ["task=register", "user=" + encodeURIComponent($userReg.val()), 
                 "email=" + encodeURIComponent($emailReg.val()),
-                "pass=" + encodeURIComponent($passReg.val())];
+                "pass=" + encodeURIComponent(sha1($passReg.val()))];
                 var regPost = regt.join("&");
                 alert(regPost);
                 //tasks = [];
