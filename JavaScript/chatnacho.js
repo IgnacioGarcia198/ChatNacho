@@ -45,6 +45,8 @@ $('document').ready(function() {
     var $chatDiv, $welcome,$loginLink,$regLink,$logoutLink;
     var $input;
     var $sendBtn,$msgbox;
+    var tempUser = "";
+    var minlength = 6;
     // check if the user is logged or not
     
     loadChat();
@@ -77,6 +79,8 @@ $('document').ready(function() {
             //$chatWindow.html("jdaaaaaaaaaoder");
             $input = $mainFrame.find('#input');
             $userChat = $input.find('#userChat');
+            var $changeUserBtn = $input.find('#changeUser');
+            var $chgtxt =$input.find('#chgtxt');
             $sendBtn = $input.find('#sendBtn');
             $msgbox = $input.find('#msgbox');
             $loginLink.on('click', loadLogin);
@@ -84,8 +88,83 @@ $('document').ready(function() {
             $logoutLink.on('click', orderLogout);
             checkLogin();
             
+            $changeUserBtn.on('click', change);
+            function change() {
+                if(tempUser !== "") {
+                    $userChat.attr('disabled', 'disabled');
+                    tempUser = "";
+                    $chgtxt.html("");
+                    $changeUserBtn.html("Change"); 
+                }
+                else {
+                    $userChat.removeAttr('disabled');
+                    tempUser = $userChat.val();
+                    $chgtxt.html("Write new username");
+                    $userChat.select();
+                    $changeUserBtn.html("Confirm");
+                    changeGuestName();
+                }
+                
+            }
             
+            function changeGuestName() {
+                // here we are going to query to the database if the new username is already in database.
+                // For that first we check if it meets the conditions for an username, and will query to the database
+                // just in case it meets those conditions.
+                //sth like "that user is already registered, please log in to use the chat or choose a different guest name".
+                //var res = false;
+                //0-9ñÑ_-\*#
+                checkUser($userChat, "user", $chgtxt, "^[*a-zA-Z0-9ñÑ#\-\.\+\^<>]+$", 4,
+                "<b>That user is already registered. Please login or pick another user name.</b>", 
+                "Click on 'confirm' to set the new user name", false);
+            }
             
+            /*checkField($userChat, "user", flags, "us", $chg, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength,
+            "That user is already registered. Please login or pick another user name.", "Valid user name", true);
+            
+            /**
+            * Generalized function for checking if the new guest user name entered is correct, available, etc
+            * @param {JQuery <input> element} $input text input where we write the new user name
+            * @param {String} field name of the field to check in the database
+            * @param {JQuery <span> element} $output element which shows the advice text like "not valid", "too short", etc
+            * @param {String} regex regular expression constraining the new name to input
+            * @param {Integer} minlength Minimum lenght for the new name to input
+            * @param {String} msgMatch Text to show if the field is in the database
+            * @param {String} msgNoMatch Text to show if the field is not in the database
+            * @param {Boolean} op Extra parameter for the php request, never change in this function.
+            * @returns {undefined}
+            */
+           function checkUser($input, field, $output, regex, minlength, msgMatch, msgNoMatch) {
+               $input.on("input", function() {
+                   var res = false;
+                   //alert(op);
+                   var value = this.value;
+                   //alert(this.value);
+                   if(!match(value, regex, minlength, $output)) {
+                       //alert("regex error");
+                       $input.html("mierda");
+                       //$output.html("This is not a valid " + field);
+                       return false;
+                   }
+                   fieldIsInDatabase(trim(value), field, function(res) {
+                       if(res === "true") {
+                           alert("hello");
+                           $output.html(msgMatch);
+                           $changeUserBtn.attr('disabled', 'disabled');
+                           //flags[flag] = !vf;
+                           //alert("is in");
+                           return true;
+                       }
+                       else {
+                           $output.html(msgNoMatch);
+                           $changeUserBtn.removeAttr('disabled');
+                               //flags[flag] = vf;
+                           //alert("is not");
+                           return false;
+                       }
+                   });
+               });
+           }
             
             
             $sendBtn.on('click', orderSendMessage);
@@ -223,7 +302,7 @@ $('document').ready(function() {
                 us : false,
                 pas : false
             };
-            var minlength = 6;
+            
             /**
              * CHECK THE USER
              * @returns {undefined}
@@ -739,7 +818,7 @@ $('document').ready(function() {
             $output.html("Too short");
             return false;
         }
-        var patt = new RegExp(b, "g");
+        var patt = new RegExp(b, "ig");
         if(patt.test(a)) {
             //$output.html("matches");
             return true;
@@ -787,7 +866,7 @@ $('document').ready(function() {
                 }
                 else {
                     $output.html(msgNoMatch);
-                    flags[flag] = vf;
+                        flags[flag] = vf;
                     //alert("is not");
                 }
             }, op);
