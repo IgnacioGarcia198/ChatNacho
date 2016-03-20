@@ -40,6 +40,7 @@ $('document').ready(function() {
     var xhr = new XMLHttpRequest();
     var manageQueue = false;
     var currentQtask;
+    var $changeUserBtn;
     //var enableManager = true;
     
     var $chatDiv, $welcome,$loginLink,$regLink,$logoutLink;
@@ -79,7 +80,7 @@ $('document').ready(function() {
             //$chatWindow.html("jdaaaaaaaaaoder");
             $input = $mainFrame.find('#input');
             $userChat = $input.find('#userChat');
-            var $changeUserBtn = $input.find('#changeUser');
+            $changeUserBtn = $input.find('#changeUser');
             var $chgtxt =$input.find('#chgtxt');
             $sendBtn = $input.find('#sendBtn');
             $msgbox = $input.find('#msgbox');
@@ -529,7 +530,9 @@ $('document').ready(function() {
             if(userid > 0) {
                 username = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
                 //alert("username: " + username);
+                
                 $userChat.val(username);
+                //
                 logged = true;
             }
             //alert("logged: " + logged);
@@ -554,6 +557,7 @@ $('document').ready(function() {
             //$loginLink.addClass('hidden');
             //$regLink.addClass('hidden');
             $logoutLink.removeClass('hidden');
+            $changeUserBtn.hide();
         }
         else {
             $welcome.html("Welcome, guest!");
@@ -568,6 +572,7 @@ $('document').ready(function() {
                     randomGuest();
                 } 
             });
+             $changeUserBtn.show();
         }
 
         //orderRetrieveMessages(); // within the chat page we have to get the messages from the db of course
