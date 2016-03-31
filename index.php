@@ -6,6 +6,7 @@ and open the template in the editor.
 -->
 
 
+
 <html>
     <head>
         <meta charset="UTF-8">
@@ -19,6 +20,19 @@ and open the template in the editor.
         <link rel="stylesheet" href="css/chatnacho.css" type="text/css">
     </head>
     <body>
+        <?php
+            $loc = "dog";
+            function forgPass() {
+                if(!empty($_GET['loc'])) {
+                    $loc = $_GET['loc'];
+                }
+                else {
+                    $loc = "dog";
+                }
+                echo '<span id="loc" hidden="hidden">' . $loc . '</span>';
+            }
+            forgPass();
+        ?>
         <div class="container" id="mainFrame">           
         </div>
         <script type="text/javascript" src="JavaScript/chatnacho.js"></script>

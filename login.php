@@ -60,6 +60,23 @@ function work() {
     elseif($task == "checklogin") {
         echo $loginNacho->checkLogin();
     }
+    
+    elseif($task == "forgotpass") {
+        
+        if(empty($_POST['email'])) {
+            return;
+        }
+        $email = $_POST['email'];
+        echo $loginNacho->forgotPass($email);
+    }
+    
+    elseif($task == "changePass") {
+        if(empty($_POST['newPass'])) {
+            return;
+        }
+        $newPass = $_POST['newPass'];
+        echo$loginNacho->changePass($newPass);
+    }
 }
 header('Cache-control: no-cache, must-revalidate');
 header('Pragma: no-cache');

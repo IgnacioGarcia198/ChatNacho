@@ -3,27 +3,36 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-// SHOULD DO A LOT NEW
-// WE CAN GENERALIZE THE HANDLER FOR XMLRESPONSE AND ADD THE CALLBACK BUT WE NEED TWO DIFFERENT FUNCTIONS:
-// ONE OF THEM WILL TAKE NO PARAMETER, JUST EXTRACT NEXT TASK FROM QUEUE. CAN DO IT WITH ADDITIONAL PARAMETER.
-// AT THE END OF THE GENERAL THING AFTER THE CALLBACK, WE WILL SET THE TIMEOUT TO REPEAT RETRIEBEMESSAGES.
-// BUT WE WILL DO THAT ONLY IN THE FUNCTION FOR THE TASKS IN QUEUE. WE CAN JUST CHECK IF TYPE OF PARAMETER IS ARRAY.
-// THIS FILE NEEDS TO WORK AS A QUEUE OF TASKS TO DO. 
-// WHEN A NEW MESSAGE IS SENT, WE PUT A TASK IN A QUEUE (PARAMETERS OR WHATEVER).
-// THEN WE START A TIMEOUT. WE WILL CALL AGAIN THE TIMEOUT JUST IN THE CASE THE TABLE IS NOT EMPTY AFTER THAT.
-// 
-// 
-//=======================================================
-//Every task we run will be waiting until the last task has finished, and then will run. It would never occur that one task overlaps other one, but never know, this is asynchronous.  
-//Every time we put a sendMessage task in the table, we will first empty the table. Afterwards we will put a new 
-//Every time we put a login, logout or register task in the table, we will first empty the table.
-//Every time we put a retrieveMessages task in the table, this will be automatically done at the end of every task handler, so we don't really need to bother about this.
-//
-//Whenever we reload the page, we will need to check if the session is running, and in that case, we will put the 'logged'
-//to true. For this, as well as login, register and logout, we should not use the queue, and shoud disable the task manager.
-//HASTA LA POLLA JJJJ
-//=========================================
-// THIS IS A RUBBISH. MUST START WITH A PART AND MAKE IT WORK PERFECTLY BEFORE PUTTING MORE PARTS.
+// THINGS WE NEED TO DO NOW:
+// THERE IS A QUESTION THAT WAS NEVER TAKEN INTO ACCOUNT HERE: WITH THE RANDOM NUMBER FOR THE GUEST USERS, WE COULD
+// HAVE SOME OF THEM REPEATED THERE. SO WE WILL NEED TO MAKE SURE THAT THERE IS NO RANDOM USER THAT HAS ALREADY BEEN
+// ASIGNED BEFORE WITHIN THE LAST 50 MESSAGES. ACTUALLY, THE BEST THING WOULD BE TO ASSIGN GESTS IN ORDER WITH A PERSISTENT
+// VARIABLE THAT WE CAN JUST HAVE IN THE DATABASE OR IN A FILE. ACTUALLY DATABASE DOES NOT FIT A SINGLE VARIABLE...
+// ALSO LETS HAVE IN ACCOUNT THAT EVERY TIME WE MAKE A NEW GUEST WE WILL WANT TO UPDATE IMMEDIATELY THAT FILE.
+// OK LETS SEE, MAYBE JSON CAN HELP US A LOT HERE OR MAYBE NOT... BUT ITS WORTH TO TRY.
+
+// SO WE WILL TRY TO USE JSON WITH A FILE OR STH IN ORDER TO HAVE AN ORDER WITH THE GUESTS. WE JUST WANT A PERSISTENT
+// VARIABLE FOR THE LAST GUEST ASSIGNED.
+
+// STH VERY INTERESTING WILL BE TO IMPLEMENT A FUNCTION TO LOAD OLDER MESSAGES WHEN SCROLLING UP MORE THAN THE CURRENT SHOWN
+// MESSAGES.
+
+// BECAUSE, IMAGINE WE LOSE THE DATA CONNECTION OR STH... THEN WE NEED TO COUNT THE MESSAGES
+// AND ALSO TO LOOK FOR THE LAST GUEST NUMBER. FORTUNATELLY, I CAN TELL FROM NOW THAT THE LAST GUEST WILL BE ONE OF WITHIN
+// THE MESSAGES POSTED THE LAST DAY.
+// OK SO WHO CARES ABOUT STORING THE LAST GUEST NUMBER, IT DOESNT MAKE SENSE...
+// COUNTING THE MESSAGES SHOULD NOT BE THAT TOUGH JOB.
+// LETS DO BOTH OF THESE THINGS WHEN A NEW GUEST CONNECTS.
+// SO, IN "WELCOMEUSER" WHEN THE USER IS NOT REGISTERED.
+// (BECAUSE THAT ONE FUNCTION IS NOT SO OFTEN RUN :P)
+// SO NO JSON NO SHITTY VARIABLES AT THE MOMENT HAHA
+
+// NOW WE HAVE FORGOT PASSWORD SUPPOSEDLY WORKING.
+// BETTER WE WILL REDIRECT TO THE INDEX WITHOUT PARAMETERS AFTER CHANGING THE PASSWORD.
+// AND WHEN THE PERSON REGISTERS, WE ALSO NEED TO SEND A CONFIRMATION EMAIL.
+// WE WILL JUST STORE IN SESSION THE REST OF THE DATA, IN A DIFFERENT VARIABLE ONLY FOR THIS CASE.
+// THEN THE PERSON CLICKS THE LINK AND GOES TO THE INDEX?REG.
+// THEN WE CAN DO THE REGISTERING IN THE DATABASE, BUT NOT BEFORE.
 
 $('document').ready(function() {
     var $mainFrame = $('#mainFrame');
@@ -49,14 +58,89 @@ $('document').ready(function() {
     var tempUser = "";
     var minlength = 6;
     // check if the user is logged or not
+    var loc = document.getElementById('loc');
+    var loctext = loc.innerHTML;
+    alert(loctext);
+    if(loctext === "changepass") {
+        loadChangePass();
+    }
+    else {
+        loadChat();
+    }
     
-    loadChat();
-//==========================================================================================
-//                             WITHIN THE CHAT PAGE
-//=====================================================================================
     function init() {
         lastid = 0;
     }
+    //=====================================================================================
+    //                        CHANGE PASSWORD PAGE
+    //=====================================================================================
+    
+    function loadChangePass() {
+        $mainFrame.html("");
+        
+        $mainFrame.load("changepassword.html", function() {
+            //var changePassDiv = document.getElementById("changePassDiv");
+            var flags = {pass : false, confpass : false};
+            var $passIn = $mainFrame.find("#passChan");
+            var $confPassIn = $mainFrame.find("#confirmPassChan");
+            var $testPassIn = $mainFrame.find("#testPassChan");
+            var $testConfPassIn = $mainFrame.find("#testConfirmPassChan");
+            
+            checkPass($passIn, $testPassIn, minlength, flags, "pass");
+            confirmPassword($confPassIn, $passIn, $testConfPassIn, flags, "confpass");
+            //confirmPassword($confirmPass, $passReg, $testConfirmPass, flags, "confpas");
+            var goPassChan = document.getElementById("goPassChan");
+            goPassChan.addEventListener("click", sendChangePass);
+        
+        
+            function sendChangePass() {
+                alert("www");    
+                if(!flags['pass']) {
+                        alert("Bad password");
+                        return;
+                    }
+                if(!flags['confpass']) {
+                    alert("Pasword does not match");
+                    return;
+                }
+                alert("no errror");
+                var passChanPost = "task=changePass&newPass=" + encodeURIComponent(sha1($passIn.val()));
+                alert(passChanPost);
+                //tasks = [];
+                var changePassTask = new QueueTask(passChanPost, afterResponseChangePass, "login.php");
+                executeTask(changePassTask);
+                //tasks.push(new QueueTask(regPost, afterResponseRegister));
+                /*if(!managerRunning) {
+                    alert("run manager");
+                    manageTasks();
+                }
+                else {
+                    alert("manager is running");
+                }*/
+                //manageTasks();
+            }
+            
+            function afterResponseChangePass(docresponse) {
+                // we can go to login page or log in and enter chat directly.
+                var passChanged = docresponse.getElementsByTagName("passchanged")[0].firstChild.data.toString();
+                alert("passChanged: " + passChanged);
+                if(passChanged === "false") {
+                    alert("Sorry, there was a problem when setting the new password. Please retry it later.");
+                    return;
+                }
+                alert("Your password was successfully changed! Now you will be logged in.");
+                loguser(docresponse);
+            }
+            
+        });
+    }
+    
+    
+    
+//==========================================================================================
+//                             WITHIN THE CHAT PAGE
+//=====================================================================================
+    
     /**
      * Loads the chat page from its file
      * @returns {undefined}
@@ -81,32 +165,47 @@ $('document').ready(function() {
             $input = $mainFrame.find('#input');
             $userChat = $input.find('#userChat');
             $changeUserBtn = $input.find('#changeUser');
-            var $chgtxt =$input.find('#chgtxt');
+            var $chgtxt = $input.find('#chgtxt'),
+            $forgPass = $chatDiv.find('#forgPass');
             $sendBtn = $input.find('#sendBtn');
             $msgbox = $input.find('#msgbox');
             $loginLink.on('click', loadLogin);
             $regLink.on('click', loadReg);
             $logoutLink.on('click', orderLogout);
+            $forgPass.click(loadForgotPass);
             checkLogin();
             
             $changeUserBtn.on('click', change);
+            /*$userChat.blur(function() {
+                $changeUserBtn.removeAttr('disabled');
+            });*/
             function change() {
                 if(tempUser !== "") {
                     $userChat.attr('disabled', 'disabled');
+                    $msgbox.removeAttr('disabled');
                     tempUser = "";
                     $chgtxt.html("");
                     $changeUserBtn.html("Change"); 
+                    //manageQueue = false;
                 }
                 else {
+                    //manageQueue = false;
+                    //tasks = [];
+                    $msgbox.attr('disabled', 'disabled');
+                    $changeUserBtn.attr('disabled', 'disabled');
                     $userChat.removeAttr('disabled');
                     tempUser = $userChat.val();
-                    $chgtxt.html("Write new username");
+                    $chgtxt.html("Write new username and press enter");
                     $userChat.select();
                     $changeUserBtn.html("Confirm");
-                    changeGuestName();
+                    //changeGuestName();
                 }
                 
             }
+            
+            checkUser($userChat, "user", $chgtxt, "^[*a-zA-Z0-9ñÑ#\-\.\+\^<>]+$", 4,
+                "<b>That user is already registered. Please login or pick another user name.</b>", 
+                "Click on 'confirm' to set the new user name", false);
             
             function changeGuestName() {
                 // here we are going to query to the database if the new username is already in database.
@@ -115,9 +214,7 @@ $('document').ready(function() {
                 //sth like "that user is already registered, please log in to use the chat or choose a different guest name".
                 //var res = false;
                 //0-9ñÑ_-\*#
-                checkUser($userChat, "user", $chgtxt, "^[*a-zA-Z0-9ñÑ#\-\.\+\^<>]+$", 4,
-                "<b>That user is already registered. Please login or pick another user name.</b>", 
-                "Click on 'confirm' to set the new user name", false);
+                
             }
             
             /*checkField($userChat, "user", flags, "us", $chg, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength,
@@ -136,32 +233,41 @@ $('document').ready(function() {
             * @returns {undefined}
             */
            function checkUser($input, field, $output, regex, minlength, msgMatch, msgNoMatch) {
-               $input.on("input", function() {
+               $input.on("change", function() {
                    var res = false;
                    //alert(op);
                    var value = this.value;
                    //alert(this.value);
+                   
                    if(!match(value, regex, minlength, $output)) {
                        //alert("regex error");
-                       $input.html("mierda");
+                       //$input.html("mierda");
                        //$output.html("This is not a valid " + field);
                        return false;
+                   }
+                   
+                   if(!value.match(/(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])/g)) {
+                       $output.html(msgNoMatch);
+                       $changeUserBtn.removeAttr('disabled');
+                       return true;
                    }
                    fieldIsInDatabase(trim(value), field, function(res) {
                        if(res === "true") {
                            alert("hello");
                            $output.html(msgMatch);
-                           $changeUserBtn.attr('disabled', 'disabled');
+                           //$changeUserBtn.attr('disabled', 'disabled');
                            //flags[flag] = !vf;
                            //alert("is in");
-                           return true;
+                           return false;
                        }
                        else {
                            $output.html(msgNoMatch);
-                           $changeUserBtn.removeAttr('disabled');
+                           //if (xhr.readyState === 4) {
+                            $changeUserBtn.removeAttr('disabled');
+                           //}
                                //flags[flag] = vf;
                            //alert("is not");
-                           return false;
+                           return true;
                        }
                    });
                });
@@ -298,6 +404,7 @@ $('document').ready(function() {
             $goLogin = $loginDiv.find('#goLogin'),
             $regLink2 = $loginDiv.find('#regLink2'),
             $forgotPass = $loginDiv.find('#forgotPass');
+            $forgotPass.click(loadForgotPass);
             
             var flags = {
                 us : false,
@@ -365,6 +472,72 @@ $('document').ready(function() {
         });   
     }
     
+    function loadForgotPass() {
+        alert("load forgot");
+        //stopManager(); // we are not in the chat window anymore so there's no need to do cyclic retrieves of messages.
+        manageQueue = false;
+        //cycleManager = false;
+        $mainFrame.html("");
+        //var correct = false;
+        
+        $mainFrame.load("forgotpassword.html", function() {
+            var $forgotDiv = $mainFrame.find('#forgotDiv'),
+            $forgotAddress = $forgotDiv.find('#address'),
+            $testForgEmail = $forgotDiv.find('#testForgEmail'),
+            $noticeEmSent = $forgotDiv.find('#noticeEmSent'),
+            $goForgot = $forgotDiv.find('#goForgot');
+            $goForgot.attr('disabled', 'disabled');
+            
+            var flags = {
+                em : false
+            };
+            
+            checkField($forgotAddress, "email", flags, "em", $testForgEmail, "^[a-z0-9\.\-_]+@[a-z]+\\.[a-z]{2,3}$", minlength,
+            "Valid email address", "That email address is not registered. Try to remember your email or register a new one.", 
+            false, disableGoForgot, enableGoForgot);
+            function enableGoForgot() {
+                $goForgot.removeAttr('disabled');
+            }
+            function disableGoForgot() {
+                $goForgot.attr('disabled', 'disabled');
+            }
+            
+            $goForgot.on('click', sendForgot);
+            
+            /**
+             * Function triggered when clicking on "go" button. Performs checks and the login if everything is ok.
+             * @returns {undefined}
+             */
+            function sendForgot() {
+                alert("send forgot");
+                if(!flags['em']) {
+                    alert("Bad email");
+                    return;
+                }
+                
+                var forgotPost = "task=forgotpass&email=" + encodeURIComponent(trim($forgotAddress.val()));
+                //tasks = [];
+                var forgotTask = new QueueTask(forgotPost, afterResponseForgot, "login.php");
+                executeTask(forgotTask);
+                
+                
+                // So, now php receives the data and sends an email to the provided address, with a link to reset the password.
+                // This can be embedded in the main page index for further use. So  we need to access index.html
+                // and directly load the page changePassword, this is, directly invoke loadChangePassword function.
+                // So we need to tell apart if we come from the email in order to load the page for password change.
+                // Actually in this case a simple html would be much easier. Also I can see I have a little problem now
+                // with the web addresses. Like there is no direct access to the pages like login, etc.
+                // I will deal with that later. Just now I will make it work fully as a chat.
+                
+
+            }
+            
+            function afterResponseForgot(docresponse) {
+                //loguser(docresponse); 
+            }
+        });
+    }
+    
     //==========================================================================================
 //                             END OF THE LOGIN THINGS
 //=====================================================================================
@@ -402,16 +575,16 @@ $('document').ready(function() {
             $goReg = $regDiv.find('#goReg');
             var $testReg = $regDiv.find('#testReg');
             //$testReg.html("matches");
-            $userReg.val("aligatoR25");
-            $emailReg.val("aligator25@cona.com");
-            $passReg.val("22TTjfd");
-            $confirmPass.val("22TTjfd");
+            //$userReg.val("aligatoR25");
+            //$emailReg.val("aligator25@cona.com");
+            //$passReg.val("22TTjfd");
+            //$confirmPass.val("22TTjfd");
             $goReg.on('click', sendReg);
             
             
             checkField($userReg, "user", flags, "us", $testUserReg, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength,
             "That user is already registered. Please login or pick another user name.", "Valid user name", true);
-            checkField($emailReg, "email", flags, "em", $testEmail, "^[a-z0-9]+@[a-z]+\\.[a-z]{2,3}$", minlength,
+            checkField($emailReg, "email", flags, "em", $testEmail, "^[a-z0-9\-\._]+@[a-z]+\\.[a-z]{2,3}$", minlength,
             "That email address is already registered. Please login or write a different email.", "Valid email address", true);
  
             /**
@@ -430,10 +603,10 @@ $('document').ready(function() {
                 }
             });*/
             
-            /**
-             * CHECK PASSWORD CONFIRMATION
-             */
-            $confirmPass.on("input", function() {
+            
+            
+            confirmPassword($confirmPass, $passReg, $testConfirmPass, flags, "confpas");
+            /*$confirmPass.on("input", function() {
                 var val = this.value;
                 if((typeof val) === "undefined" || val === "" || val !== $passReg.val()) {
                     $testConfirmPass.html("Password does not match");
@@ -443,7 +616,7 @@ $('document').ready(function() {
                     $testConfirmPass.html("Password confirmed");
                     flags.confpas = true;
                 }
-            });
+            });*/
 
             /**
              * Function triggered when clicking on the "go" button. Performs checks and the register if everything is ok.
@@ -566,12 +739,13 @@ $('document').ready(function() {
             //$loginLink.removeClass('hidden');
             //$regLink.removeClass('hidden');
             $logreg.removeClass('hidden');
-            $msgbox.on("focus", function() {
+            randomGuest();
+            /*$msgbox.on("focus", function() {
                 var val = $userChat.val();
                 if(typeof val === "undefined" || val === "") {
                     randomGuest();
                 } 
-            });
+            });*/
              $changeUserBtn.show();
         }
 
@@ -773,7 +947,7 @@ $('document').ready(function() {
                 //message + '</div>');
             }
             lastid = idArray[idArray.length - 1].firstChild.data;
-            alert(lastid);
+            //alert(lastid);
             //txtres = res.join("");
         }
         //setTimeout(orderRetrieveMessages, updateInterval);
@@ -852,7 +1026,7 @@ $('document').ready(function() {
      * @param {type} op
      * @returns {undefined}
      */
-    function checkField($input, field, flags, flag, $output, regex, minlength, msgMatch, msgNoMatch, vf, op) {
+    function checkField($input, field, flags, flag, $output, regex, minlength, msgMatch, msgNoMatch, vf, op, f1, f2) {
         $input.on("input", function() {
             //alert(op);
             var value = this.value;
@@ -867,11 +1041,13 @@ $('document').ready(function() {
                     alert("hello");
                     $output.html(msgMatch);
                     flags[flag] = !vf;
+                    if(f1) {f1();}
                     //alert("is in");
                 }
                 else {
                     $output.html(msgNoMatch);
-                        flags[flag] = vf;
+                    flags[flag] = vf;
+                    if(f2) {f2();}
                     //alert("is not");
                 }
             }, op);
@@ -1045,6 +1221,26 @@ $('document').ready(function() {
        // display error message, with more technical details if debugMode is true
        alert("Error accessing the server! "+(debugMode ? "<br/>" + message : ""));
    }
+   
+   /**
+             * CHECK PASSWORD CONFIRMATION
+             */
+            function confirmPassword($conf, $orig, $output, flags, flag) {
+                
+                $conf.on("input", function() {
+                    //alert("ey");
+                    var val = this.value;
+                    //alert("values pass: " + $orig.val() + "<br>" + val);
+                    if((typeof val) === "undefined" || val === "" || val !== $orig.val()) {
+                        $output.html("Password does not match");
+                        flags[flag] = false;
+                    }
+                    else {
+                        $output.html("Password confirmed");
+                        flags[flag] = true;
+                    }
+                });   
+            }
     
 });
 

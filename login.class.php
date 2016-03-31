@@ -55,24 +55,31 @@ class Login {
         return $response;
     }
     
-    public function login($user, $password) {
-        $pass = sha1($password);
-        $query = 'SELECT user_id, user_name FROM users WHERE (user_name = "' . $user . '" OR email = "' . $user . '") AND password = "' . $pass . '"';
+    public function login($user, $password, $changePass = false) {
+        //$pass = sha1($password);
+        $query = 'SELECT user_id, user_name FROM users WHERE (user_name = "' . $user . '" OR email = "' . $user . '") AND password = "' . $password . '"';
+        $this->firephp->log($query, 'login query');
         $result = $this->msqli->query($query);
+        $paschanged = false;
         if($result->num_rows == 1) {
             $row = $result->fetch_row();
             $result->close();
             $re = $row[0];
             $re1 = $row[1];
             $_SESSION['user_id'] = $re;
-            $_SESSION['username'] = $user;     
+            $_SESSION['username'] = $re1;  
+            $paschanged = true;
         }
         else {
-            $re = 0;
-            $re1 = " ";
+            $_SESSION['user_id'] = 0;
+            $_SESSION['username'] = " ";
+            $paschanged = false;
         }
-        $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-        $response .= '<response><userid>' . $_SESSION['user_id'] . '</userid>';
+        $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?><response>';
+        if($changePass) {
+            $response .= '<passchanged>' . $paschanged . '</passchanged>';
+        }
+        $response .= '<userid>' . $_SESSION['user_id'] . '</userid>';
         $response .= '<username>' . $_SESSION['username'] . '</username></response>';
         return $response;
     }
@@ -80,7 +87,7 @@ class Login {
     public function register($user, $email, $password) {
         $user = $this->msqli->real_escape_string($user);
         $email = $this->msqli->real_escape_string($email);
-        $pass = $this->msqli->real_escape_string(sha1($password));
+        $pass = $this->msqli->real_escape_string($password);
         $query = 'INSERT INTO users (user_name, email, password)' . // sql query, inputing the message in the db.
         'VALUES (
         "' . $user . '",
@@ -140,5 +147,52 @@ class Login {
         $resp .= '<user_id>' . $userid . '</user_id>';
         $resp .= '<username>' . $username . '</username></response>';
         return $resp;
+    }
+    
+    function forgotPass($email) {
+        //ini_set('SMTP','smtp.gmail.com');
+        //ini_set('smtp_port',587);
+        //$to = "$email;
+        //ini_set('SMTP','smtp.gmail.com');
+        //ini_set('smtp_port',587);
+        $_SESSION['email'] = $email;
+        //$headers = "Content-type: text/html; charset=UTF-8" . "\r\n";
+        //$headers = "Content-type: text/html" . "\r\n";
+        $headers = "From: Chat Nacho" . "\r\n";
+        $subject = "Password Reset";
+        //$message = 'Please click on the link below to reset your user password:
+        //            <p><a href="http://localhost/ChatNacho/index.php?loc=changepass"><b>Reset Password</b></a></p>';
+        $message = 'Please click on the link below to reset your user password:
+                    <p><a href="http://chatnacho.tk/index.php?loc=changepass"><b>Reset Password</b></a></p>';
+        
+        $this->firephp->log($email, 'forgot email');
+        $res = mail($email, $subject, $message, $headers); 
+        $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
+        $response .= '<response><mailsent>' . ($res ? "true" : "false") . '</mailsent>';
+        $response .= '<recipient>' . $email . '</recipient></response>';
+        return $response;
+    }
+    
+    public function changePass($newPass) {
+        $_SESSION['email'] = "ignaciogarcia198@gmail.com";
+        $this->firephp->log($_SESSION['email'], 'email session');
+        if(empty($_SESSION['email'])) {return;} 
+        $email = $_SESSION['email'];
+        //$pass = sha1($newPass);
+        $newPass = $this->msqli->real_escape_string($newPass);
+        $response = "";
+        $query = 'UPDATE users SET password = "' . $newPass .'" WHERE email = "' . $email . '"';
+        $this->firephp->log($query, 'query update password');
+        $result = $this->msqli->query($query);
+        $this->firephp->log($this->msqli->affected_rows, 'affected rows');
+        if($this->msqli->affected_rows != 1) {
+            unset($_SESSION['email']);
+            $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
+            $response .= '<response><passchanged>false</passchanged></response>';
+            return $response;
+        }
+        else {
+            return $this->login($email, $newPass, true);
+        }
     }
 }
