@@ -207,18 +207,6 @@ $('document').ready(function() {
                 "<b>That user is already registered. Please login or pick another user name.</b>", 
                 "Click on 'confirm' to set the new user name", false);
             
-            function changeGuestName() {
-                // here we are going to query to the database if the new username is already in database.
-                // For that first we check if it meets the conditions for an username, and will query to the database
-                // just in case it meets those conditions.
-                //sth like "that user is already registered, please log in to use the chat or choose a different guest name".
-                //var res = false;
-                //0-9ñÑ_-\*#
-                
-            }
-            
-            /*checkField($userChat, "user", flags, "us", $chg, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength,
-            "That user is already registered. Please login or pick another user name.", "Valid user name", true);
             
             /**
             * Generalized function for checking if the new guest user name entered is correct, available, etc
@@ -340,7 +328,15 @@ $('document').ready(function() {
                
         }); 
     }
+    //=====================================================================================
+    //                        END OF THE CHAT THINGS
+    //=====================================================================================
     
+    /**
+     * Function that puts a random user name for a guest in the user name text box. We have to change this function,
+     * since we cannot have duplicate guests. So we will cycle the numbers.
+     * @returns {undefined}
+     */
     function randomGuest() {
         $userChat.val("Guest" + Math.floor(Math.random() * 1000));
     }
@@ -373,13 +369,7 @@ $('document').ready(function() {
         }, "login.php"));
         //manageTasks();
     }
-    
-    //==========================================================================================
-//                             END OF THE CHAT THINGS
-//=====================================================================================
-    
-    
-    
+ 
     //==========================================================================================
 //                             WITHIN THE LOGIN PAGE
 //=====================================================================================
@@ -410,25 +400,7 @@ $('document').ready(function() {
                 us : false,
                 pas : false
             };
-            
-            /**
-             * CHECK THE USER
-             * @returns {undefined}
-             */
-            /*$userLogin.on("input", function() {
-                //alert(this.value);
-                fieldIsInDatabase(trim(this.value), "user", "login", function(res) {
-                    if(res === "true") {
-                        alert("hello");
-                        $testUserLogin.html("User correct");
-                        correct = true;
-                    }
-                    else {
-                        $testUserLogin.html("User does not exist");
-                        correct = false;
-                    }
-                });
-            });*/
+
             checkField($userLogin, "user", flags, "us", $testUserLogin, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength,
             "Valid user", "That user is not in database", false, "login");
             
@@ -454,16 +426,8 @@ $('document').ready(function() {
                 
                 var loginPost = "task=login&user=" + encodeURIComponent(trim($userLogin.val())) + "&" + 
                 "pass="  + encodeURIComponent(sha1($passLogin.val()));
-                //tasks = [];
                 var loginTask = new QueueTask(loginPost, afterResponseLogin, "login.php");
                 executeTask(loginTask);
-                //tasks.push(new QueueTask(loginPost, afterResponseLogin));
-                
-                /*if(!managerRunning) {
-                    manageTasks();
-                }*/
-                //manageTasks();
-                // send to the login.php or whatever
             }
             
             function afterResponseLogin(docresponse) {
@@ -471,6 +435,14 @@ $('document').ready(function() {
             }
         });   
     }
+    
+    //==========================================================================================
+//                             END OF THE LOGIN THINGS
+//=====================================================================================
+
+//==========================================================================================
+//                             THINGS IN FORGOT PASS PAGE
+//=====================================================================================
     
     function loadForgotPass() {
         alert("load forgot");
@@ -539,8 +511,10 @@ $('document').ready(function() {
     }
     
     //==========================================================================================
-//                             END OF THE LOGIN THINGS
+//                             END OF THE FORGOT PASS THINGS
 //=====================================================================================
+    
+    
     
       
     //==========================================================================================
@@ -592,31 +566,8 @@ $('document').ready(function() {
              */
             
             checkPass($passReg, $testPass, minlength, flags, "pas");
-            /*$passReg.on("input", function() {
-                if(match(this.value, "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])", minlength, $testPass)) {
-                    $testPass.html("Password correct!");
-                    flags.pas = true;
-                }
-                else {
-                    $testPass.html("Password not good enough...");
-                    flags.pas = false;
-                }
-            });*/
-            
-            
-            
+   
             confirmPassword($confirmPass, $passReg, $testConfirmPass, flags, "confpas");
-            /*$confirmPass.on("input", function() {
-                var val = this.value;
-                if((typeof val) === "undefined" || val === "" || val !== $passReg.val()) {
-                    $testConfirmPass.html("Password does not match");
-                    flags.confpas = false;
-                }
-                else {
-                    $testConfirmPass.html("Password confirmed");
-                    flags.confpas = true;
-                }
-            });*/
 
             /**
              * Function triggered when clicking on the "go" button. Performs checks and the register if everything is ok.
@@ -649,15 +600,7 @@ $('document').ready(function() {
                 //tasks = [];
                 var regTask = new QueueTask(regPost, afterResponseRegister, "login.php");
                 executeTask(regTask);
-                //tasks.push(new QueueTask(regPost, afterResponseRegister));
-                /*if(!managerRunning) {
-                    alert("run manager");
-                    manageTasks();
-                }
-                else {
-                    alert("manager is running");
-                }*/
-                //manageTasks();
+
             }
             
             function afterResponseRegister(docresponse) {
@@ -669,24 +612,7 @@ $('document').ready(function() {
     //==========================================================================================
 //                             END OF THE REGISTER THINGS
 //=====================================================================================
-    /**
-     * we start the manager with the tasks to repeat
-     * @returns {undefined}
-     */
-    function startManager() {
-        enableManager = true;
-        manageTasks();
-    }
-    
-    /**
-     * puts the manager to rest and empties the task queue.
-     * @returns {undefined}
-     */
-    function stopManager() {
-        enableManager = false;
-        tasks = [];
-    }
-    
+ 
     /**
      * simply check if we are logged or not.
      * @returns {undefined}
@@ -696,7 +622,7 @@ $('document').ready(function() {
         // THIS EXECUTE TASK IS TOO GENERAL, FOR REGISTER AND LOGIN WE SHOULDNT NEED ANY QUEUE.
         // BUT ITS TRUE THAT WHEN LEAVING THE CHAT PAGE TO GO TO LOGIN WE MUST EMPTY THE QUEUE, WONT BE USED AT THE MOMENT.
         // ITS OK, ITS NOT IN THE QUEUE
-        executeTask(new QueueTask("task=checklogin", function(docresponse) { // ALSO MUST MAKE ANOTHER SEPARATED QUEUE FOR LOGIN AND REGISTER THINGS, ETC.
+        executeTask(new QueueTask("task=checklogin", function(docresponse) {
             userid = docresponse.getElementsByTagName("user_id")[0].firstChild.data;
             alert("checking login: userid: " + userid);
 
@@ -719,6 +645,12 @@ $('document').ready(function() {
         }, "login.php"));
     }
     
+    /**
+     * Writes the welcome message for the user or guest in each case.
+     * Also if it is a guest, it calls randomGuest.
+     * IMPORTANT: This function is a callback called at the end of checklogin.
+     * @returns {undefined}
+     */
     function welcomeUser() {
         // PROBLEM: THIS SHOULD BE CALLBACK AFTER CHECKING THE LOGIN.
         // SOLVED.
@@ -740,23 +672,15 @@ $('document').ready(function() {
             //$regLink.removeClass('hidden');
             $logreg.removeClass('hidden');
             randomGuest();
-            /*$msgbox.on("focus", function() {
-                var val = $userChat.val();
-                if(typeof val === "undefined" || val === "") {
-                    randomGuest();
-                } 
-            });*/
+
              $changeUserBtn.show();
         }
 
-        //orderRetrieveMessages(); // within the chat page we have to get the messages from the db of course
-        //startManager(); // we start the cycle of the task manager
-        //manageTasks();
     }
     
     /**
-     * Function 
-     * @param {type} docresponse
+     * Logs in the user. Callback called after response when login and registering and so on.
+     * @param {xmlDoc} docresponse
      * @returns {undefined}
      */
     function loguser(docresponse) {
@@ -777,45 +701,28 @@ $('document').ready(function() {
         //tasks.push(new QueueTask("task=&id=" + lastid, afterResponseRetrieveMessages));
     }
     
+    /**
+     * It creates a new task for retrieving messages and adds it at the end of the task queue.
+     * @returns {undefined}
+     */
     function orderRetrieveMessages() {
         alert("retrieve"); 
         tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages, "chatnacho.php"));
-        /*if(!managerRunning) {
-            manageTasks();
-        }*/
     }
-
+    
+    /**
+     * Callback after response from executing the task added in the previous function.
+     * @param {xmlDoc} docresponse
+     * @returns {undefined}
+     */
     function afterResponseRetrieveMessages(docresponse) {
         var contentToAppend = extractMessages(docresponse);
         $chatWindow.append(contentToAppend);
     }
-    
-    /**
-     * Manages a queue of tasks. Also there are things missing here...
-     * @returns {undefined}
-     */
-    /*function manageTasks() {
-        //managerRunning = true;
-        if(enableManager) {
-            if(tasks.length > 0) {
-                var next = tasks.shift();
-                executeTask(next);
-            }
-            if(cycleManager) {
-                setTimeout(manageTasks, updateInterval);
-            } 
-            else {
-                tasks = [];
-            }
-        }
-        //managerRunning = false;
-    }*/
-    
+     
     /**
      * General function, it executes the tasks being used from a higher layer of functions.
-     * @param {type} task
-     * @param {type} handler
-     * @param {type} callback
+     * @param {QueueTask} qtask
      * @returns {undefined}
      */
     function executeTask(qtask) {
@@ -864,8 +771,10 @@ $('document').ready(function() {
     }
     
     /**
-     * General function. Handles the response for the former one.
-     * @param {Function} callback
+     * 
+     * @param {Function} callback The instructions to perform with the response obtained.
+     * @param {String} task The task sent to the php document. Not needed, just for tracking purposes. 
+     * @param {boolean} queue True if we are taking tasks from the queue
      * @returns {undefined}
      */
     function handleServerResponse(callback, task, queue) {
@@ -923,6 +832,11 @@ $('document').ready(function() {
         }
     }
     
+    /**
+     * Obtains all the messages from the xml response and appends them to the chat window.
+     * @param {xmlDoc} docresponse
+     * @returns {undefined}
+     */
     function extractMessages(docresponse) {
 
         // retrieve the arrays from the server's response
@@ -959,38 +873,44 @@ $('document').ready(function() {
     }
     
     /**
-            * Just puts a single message on the chat window. Also, if the window is full, it scrolls!
-            * @param {type} message
-            * @returns {undefined}
-            */
-           function displayMessage(message)
-           {
-               // get the scroll object
-               //var oScroll = document.getElementById("scroll");
-               // check if the scroll is down
-               var cw = $chatWindow[0];
-               var scrollDown = (cw.scrollHeight - cw.scrollTop <= cw.offsetHeight);
-               // display the message
-               $chatWindow.append(message);
-               cw.scrollTop = scrollDown ? cw.scrollHeight :
-               cw.scrollTop;
-           }
-    
-    
+    * Just puts a single message on the chat window. Also, if the window is full, it scrolls!
+    * @param {html code} message
+    * @returns {undefined}
+    */
+   function displayMessage(message)
+   {
+       // get the scroll object
+       //var oScroll = document.getElementById("scroll");
+       // check if the scroll is down
+       var cw = $chatWindow[0];
+       var scrollDown = (cw.scrollHeight - cw.scrollTop <= cw.offsetHeight);
+       // display the message
+       $chatWindow.append(message);
+       cw.scrollTop = scrollDown ? cw.scrollHeight :
+       cw.scrollTop;
+   }
+
     /**
-     * The constructor in java for  the company
-     * @param {type} task
-     * @param {type} callback
-     * @param {type} file
+     * Class and constructor. A task with the associated callback to perform after response from server.
+     * @param {String} task Parameters to pass to php file
+     * @param {Function} callback Function to call after response from the server when execute this task.
+     * @param {type} file php file to which this task must be sent.
      * @returns {chatnacho_L22.QueueTask}
      */
-    function QueueTask(task, callback, file) { // this is designed in order to call a function with no parameters...
+    function QueueTask(task, callback, file) {
         this.task = task;
         this.callback = callback;
         this.file = file;
     }
     
-
+    /**
+     * Tests a text from some input against a min length and a regexp.
+     * @param {String} a Text from the input to check
+     * @param {String regexp} b Regular expression the input should match
+     * @param {int} minlength Min. length of the input to be acceptable 
+     * @param {JQuery element} $output Element where we write the result of evaluating the regexp
+     * @returns {Boolean}
+     */
     function match(a, b, minlength, $output) {
         //alert("match goes");
         if(a.length < minlength) {
@@ -1012,18 +932,20 @@ $('document').ready(function() {
     }
     
     /**
-     * Generalized function go en
-     * @param {type} $input
-     * @param {type} field
-     * @param {type} flags
-     * @param {type} flag
-     * @param {type} $output
-     * @param {type} regex
-     * @param {type} minlength
-     * @param {type} msgMatch
-     * @param {type} msgNoMatch
-     * @param {type} vf
-     * @param {type} op
+     * 
+     * @param {JQuery input element} $input The input containing the text we are checking.
+     * @param {String} field Name of the database field we want to check against.
+     * @param {Object} flags An object containing various boolean flags. Will contain the result of this function.
+     * @param {String} flag Field inside flags we change to true or false depending on the result.
+     * @param {JQuery element} $output Element in which we write the result of the function.
+     * @param {String} regex Regular expresion the content of the input should match 
+     * @param {int} minlength Min length the text in the input must have.
+     * @param {String or html} msgMatch Message to show in the output when the input matches and its in the database.
+     * @param {String or html} msgNoMatch Message to show in case of no match.
+     * @param {boolean} vf Inverts the matching/no matching results true/false given to the flag.
+     * @param {type} op This can be "login" and in that case it will pass a different parameter to the php file to accept the same username or email.
+     * @param {type} f1 Callback to execute if the value for the given field is already in database.
+     * @param {type} f2 Callback to execute if the value for the given field is not in database.
      * @returns {undefined}
      */
     function checkField($input, field, flags, flag, $output, regex, minlength, msgMatch, msgNoMatch, vf, op, f1, f2) {
@@ -1076,24 +998,13 @@ $('document').ready(function() {
         });
     }
     
-    /*function fieldIsInDatabase(value, field, callback, op) {
-        var task = "task=fieldcheck&field=" + field + "&" + "value=" + value;
-        if(typeof op !== 'undefined' && op !== "") {
-            task + "op=" + op;
-        }
-        tasks.push(new QueueTask(task, callback));
-        if(!managerRunning) {
-            //alert("run manager");
-            manageTasks();
-        }
-    }*/
     
     /**
      * checks if a certain value for a field is in the database.
-     * @param {type} value
-     * @param {type} field
-     * @param {type} callback
-     * @param {type} op
+     * @param {type} value Value for the field
+     * @param {type} field Name of the field or column in database
+     * @param {type} callback Function to execute after server response.
+     * @param {type} op Optional parameter, if it is login the php function accepts both username or email.
      * @returns {undefined}
      */
     function fieldIsInDatabase(value, field, callback, op) {
@@ -1141,6 +1052,7 @@ $('document').ready(function() {
     
     /**
      * handler for the server response of the former function.
+     * Its ok to use this function but could also use the general one.
      * @param {type} callback
      * @returns {undefined}
      */
@@ -1187,21 +1099,7 @@ $('document').ready(function() {
             }
         }
     }
-    
-    /*function stopManager() {
-        managerRunning = false;
-        //manageTasks();
-    }*/
-    
-    /*function resetManager() {
-        managerRunning = false;
-        tasks.push("retrieve");
-    }*/
-    
-    function changeToLogged() {
-        logged = true;  
-    }
-    
+     
     /**
     * Removes the heading and tailing blank spaces in a string (a message, in this case).
     * @param {type} s
@@ -1222,32 +1120,34 @@ $('document').ready(function() {
        alert("Error accessing the server! "+(debugMode ? "<br/>" + message : ""));
    }
    
-   /**
-             * CHECK PASSWORD CONFIRMATION
-             */
-            function confirmPassword($conf, $orig, $output, flags, flag) {
-                
-                $conf.on("input", function() {
-                    //alert("ey");
-                    var val = this.value;
-                    //alert("values pass: " + $orig.val() + "<br>" + val);
-                    if((typeof val) === "undefined" || val === "" || val !== $orig.val()) {
-                        $output.html("Password does not match");
-                        flags[flag] = false;
-                    }
-                    else {
-                        $output.html("Password confirmed");
-                        flags[flag] = true;
-                    }
-                });   
+    /**
+     * Checks if the confirmed password matches the password in the previous text box.
+     * @param {JQuery element} $conf Password confirmation text box
+     * @param {JQuery element} $orig Password text box
+     * @param {JQuery element} $output Element showing the result of the function or feedback
+     * @param {Object} flags Object consisting of boolean flags
+     * @param {String} flag Name of the flag within the flags object
+     * @returns {undefined}
+     */
+    function confirmPassword($conf, $orig, $output, flags, flag) {
+
+        $conf.on("input", function() {
+            //alert("ey");
+            var val = this.value;
+            //alert("values pass: " + $orig.val() + "<br>" + val);
+            if((typeof val) === "undefined" || val === "" || val !== $orig.val()) {
+                $output.html("Password does not match");
+                flags[flag] = false;
             }
+            else {
+                $output.html("Password confirmed");
+                flags[flag] = true;
+            }
+        });   
+    }
     
 });
 
-/*
- * Everything here was a tremendous bad thing and now we try to fix it bit by bit.
- * I put a separate file for all user login purposes, called login.php, calling login.class.php.
- */
 
 
 
