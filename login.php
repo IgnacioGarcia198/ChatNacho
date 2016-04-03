@@ -46,6 +46,10 @@ function work() {
         echo $loginNacho->register($user, $email, $password);
     }
     
+    elseif($task == 'finishregister') {
+        echo $loginNacho->finishRegister();
+    }
+    
     elseif($task == "logout") {
         echo $loginNacho->logout();
         if(!empty($_POST['id'])) {

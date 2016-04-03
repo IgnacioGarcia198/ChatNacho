@@ -22,7 +22,7 @@ and open the template in the editor.
     <body>
         <?php
             $loc = "dog";
-            function forgPass() {
+            function extractParams() {
                 if(!empty($_GET['loc'])) {
                     $loc = $_GET['loc'];
                 }
@@ -31,7 +31,7 @@ and open the template in the editor.
                 }
                 echo '<span id="loc" hidden="hidden">' . $loc . '</span>';
             }
-            forgPass();
+            extractParams();
         ?>
         <div class="container" id="mainFrame">           
         </div>

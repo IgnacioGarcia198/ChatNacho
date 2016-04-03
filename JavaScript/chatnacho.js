@@ -64,6 +64,9 @@ $('document').ready(function() {
     if(loctext === "changepass") {
         loadChangePass();
     }
+    else if(loctext === "register") {
+        finishRegister();
+    }
     else {
         loadChat();
     }
@@ -145,6 +148,7 @@ $('document').ready(function() {
      * Loads the chat page from its file
      * @returns {undefined}
      */
+    //var selecInBox = "";
     function loadChat() {
         // WE SHOULD TRY TO MAKE EACH PAGE AN INDIVIDUAL BLOCK WITH ITS OWN JAVASCRIPT AND THEN IT WILL BE LOADED.
         // BUT WE COULD NEED ACCESS TO SOME GLOBAL VARIABLES. NOT SURE, SINCE WE CAN USE ADDEVENTLISTENER AND
@@ -169,6 +173,20 @@ $('document').ready(function() {
             $forgPass = $chatDiv.find('#forgPass');
             $sendBtn = $input.find('#sendBtn');
             $msgbox = $input.find('#msgbox');
+            var $formatButtons = $chatDiv.find('.chatToolbar').find('td');
+            $formatButtons.filter(':eq(0)').on('click', function() {
+                addFormat("b");
+            });
+            
+            $formatButtons.filter(':eq(1)').on('click', function() {
+                addFormat("i");
+            });
+            
+            $formatButtons.filter(':eq(0)').on('click', function() {
+                addFormat("u");
+            });
+            
+            
             $loginLink.on('click', loadLogin);
             $regLink.on('click', loadReg);
             $logoutLink.on('click', orderLogout);
@@ -179,8 +197,50 @@ $('document').ready(function() {
             /*$userChat.blur(function() {
                 $changeUserBtn.removeAttr('disabled');
             });*/
+             
+            
+            var startSelec = -1;
+            var endSelec = -1;
+            $msgbox.on("mouseup", getTheRange);
+            //$msgbox.select(getTheRange);
+            
+            function getTheRange() {
+                var range = "";
+                if (window.getSelection) {
+                    range = window.getSelection().getRangeAt(0);
+                } 
+                else if (document.selection && document.selection.type != "Control") {
+                    range = document.selection.createRange();
+                }
+                //alert("selecInBox: " + selecInBox.toString());
+                //var range = selecInBox.getRangeAt(0);
+                //alert("range: " + range);
+                
+                //alert(range)
+                startSelec = range.startOffset;
+                endSelec = range.endOffset;
+                //alert("startselec: " + startSelec +"; endselec: " + endSelec);
+            }
+            //var $msgbox1 = $input.find('#msgbox1');
+            function addFormat(tag) {
+                if(startSelec === -1 || startSelec === endSelec) {
+                    alert("Please select some text first to apply the changes.");
+                    startSelec = -1;
+                    endSelec = -1;
+                    return;
+                }
+                /*if(startSelec === endSelec) {
+                    
+                }*/
+                var text = $msgbox.html();
+                var newText = text.substring(0, startSelec) + "<"+tag+">" + text.substring(startSelec, endSelec) + "</"+tag+">" + text.substring(endSelec);
+                $msgbox.html(newText);
+                startSelec = -1;
+                endSelec = -1;
+            }
+            
             function change() {
-                if(tempUser !== "") {
+                if(tempUser !== "") { 
                     $userChat.attr('disabled', 'disabled');
                     $msgbox.removeAttr('disabled');
                     tempUser = "";
@@ -271,7 +331,7 @@ $('document').ready(function() {
             function orderSendMessage() {
                 //alert($msgbox.val());
                 //var pep = $msgbox.val()
-                var message = trim($msgbox.val());
+                var message = trim($msgbox.html());
                 if(typeof message === 'undefined' || message === "") {
                     alert("sending empty messages is not allowed");
                     return;
@@ -301,7 +361,7 @@ $('document').ready(function() {
                 alert("posted: " + posted);
                 if(posted === "true") {
                     alert("post ok");
-                    $msgbox.val("");
+                    $msgbox.html("");
                 }
                 else {
                     if(tries < 3) {
@@ -349,7 +409,7 @@ $('document').ready(function() {
     function orderLogout() { // I decided to put this function outside of
         alert("logout"); 
         //tasks = [];
-        stopManager();
+        //stopManager();
         //cycleManager = false;
         executeTask(new QueueTask("task=logout", function(docresponse) {
             var logoutres = docresponse.getElementsByTagName("logout")[0].firstChild.data.toString();
@@ -368,6 +428,43 @@ $('document').ready(function() {
             //tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages));
         }, "login.php"));
         //manageTasks();
+    }
+    
+    function finishRegister() {
+        alert("finish register");
+        //stopManager(); // we are not in the chat window anymore so there's no need to do cyclic retrieves of messages.
+        manageQueue = false;
+        //cycleManager = false;
+        $mainFrame.html("");
+        //var correct = false;
+        executeTask(new QueueTask("task=finishregister", afterResponseFinishRegister, "login.php"));
+    }
+    
+    function afterResponseFinishRegister(docresponse) {
+        
+    }
+    
+    function registerUser(docresponse) {
+        var regis = docresponse.getElementsByTagName("registered")[0].firstChild.data;
+        if(regis !== "true") {
+            alert("Sorry, an unexpected error occurred and you could not be registered.")
+        }
+        else {
+            var idres = docresponse.getElementsByTagName("userid")[0].firstChild.data;
+            var name = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
+            alert("id: " + idres +"; name: " + name);
+            if(idres > 0) {
+                logged = true;
+                userid = idres;  
+                username = name;
+            }
+
+            else {
+                alert("Sorry, you were correctly registered, but there was an error while logging. Please try logging in from the chat");
+            }
+        }
+        window.location = "http://chatnacho.tk/index.php";
+        //loadChat();
     }
  
     //==========================================================================================
@@ -604,7 +701,7 @@ $('document').ready(function() {
             }
             
             function afterResponseRegister(docresponse) {
-                loguser(docresponse);   
+                //loguser(docresponse);   
             }
         });
     }
@@ -696,7 +793,8 @@ $('document').ready(function() {
         else {
             alert("Sorry, there was an error while logging. Check if your user and password are correct.");
         }
-        loadChat();
+        window.location = "http://chatnacho.tk/index.php";
+        //loadChat();
         //$chatWindow.html(extractMessages(docresponse)); // this can be append if we mantain the page hidden...
         //tasks.push(new QueueTask("task=&id=" + lastid, afterResponseRetrieveMessages));
     }
@@ -790,7 +888,7 @@ $('document').ready(function() {
                     // process the server's response
                     
                     var response = xhr.responseText;
-                    alert("task: " +  task + "\nresponse: " + response);
+                    //alert("task: " +  task + "\nresponse: " + response);
                     if (response.indexOf("ERRNO") >= 0
                     || response.indexOf("error:") >= 0
                     || response.length === 0)
@@ -1083,7 +1181,7 @@ $('document').ready(function() {
                     //alert("response " + xhr.responseText);
                     //alert(callback);
                     callback(res);
-                    stopManager();
+                    //stopManager();
                     //alert("flag: " + flags['us']);
                 }
                 catch(e)
@@ -1145,6 +1243,31 @@ $('document').ready(function() {
             }
         });   
     }
+    
+    /*function getCaretPosition(editableDiv) {
+        var caretPos = 0,
+          sel, range;
+        if (window.getSelection) {
+          sel = window.getSelection();
+          if (sel.rangeCount) {
+            range = sel.getRangeAt(0);
+            if (range.commonAncestorContainer.parentNode == editableDiv) {
+              caretPos = range.endOffset;
+            }
+          }
+        } else if (document.selection && document.selection.createRange) {
+          range = document.selection.createRange();
+          if (range.parentElement() == editableDiv) {
+            var tempEl = document.createElement("span");
+            editableDiv.insertBefore(tempEl, editableDiv.firstChild);
+            var tempRange = range.duplicate();
+            tempRange.moveToElementText(tempEl);
+            tempRange.setEndPoint("EndToEnd", range);
+            caretPos = tempRange.text.length;
+          }
+        }
+        return caretPos;
+      }*/
     
 });
 

@@ -85,32 +85,71 @@ class Login {
     }
     
     public function register($user, $email, $password) {
-        $user = $this->msqli->real_escape_string($user);
-        $email = $this->msqli->real_escape_string($email);
-        $pass = $this->msqli->real_escape_string($password);
-        $query = 'INSERT INTO users (user_name, email, password)' . // sql query, inputing the message in the db.
-        'VALUES (
-        "' . $user . '",
-        "' . $email . '",
-        "' . $pass . '")';
-        $result = $this->msqli->query($query);
-        $query = 'SELECT user_id, user_name FROM users WHERE email = "' . $email . '"';
-        $result = $this->msqli->query($query);
-        if($result->num_rows == 1) {
-            $row = $result->fetch_row();
-            $result->close();
-            $re = $row[0];
-            $re1 = $row[1];
-            $_SESSION['user_id'] = $re;
-            $_SESSION['username'] = $re1;
+        $_SESSION['temp_username'] = $user;
+        $_SESSION['temp_password'] = $password;
+        $_SESSION['email'] = $email;
+        
+        //$headers = "Content-type: text/html; charset=UTF-8" . "\r\n";
+        //$headers = "Content-type: text/html" . "\r\n";
+        $headers = "From: Chat Nacho" . "\r\n";
+        $subject = "Email confirmation";
+        $message = 'Please click on the link below to confirm your email address:           
+        <p><a href="http://chatnacho.tk/index.php?task=register"><b>Confirm email</b></a></p></form>';
+        
+        $this->firephp->log($email, 'register email');
+        $res = mail($email, $subject, $message, $headers); 
+        $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
+        $response .= '<response><mailsent>' . ($res ? "true" : "false") . '</mailsent>';
+        $response .= '<recipient>' . $email . '</recipient></response>';
+        return $response;
+        
+    }
+    
+    public function finishRegister() {
+        $response = '';
+        if(empty($_SESSION['temp_username']) || empty($_SESSION['temp_password']) || empty($_SESSION['email'])) {
+            $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
+            $response .= '<response><registered>false</registered></response>';   
         }
         else {
-            $re = 0;
-            $re1 = "";
+            $user = $this->msqli->real_escape_string($_SESSION['temp_username']);
+            $email = $this->msqli->real_escape_string($_SESSION['email']);
+            $pass = $this->msqli->real_escape_string($_SESSION['temp_password']);
+            $query = 'INSERT INTO users (user_name, email, password)' . // sql query, inputing the message in the db.
+            'VALUES (
+            "' . $user . '",
+            "' . $email . '",
+            "' . $pass . '")';
+            $result = $this->msqli->query($query);
+            $query = 'SELECT user_id, user_name FROM users WHERE email = "' . $email . '"';
+            $result = $this->msqli->query($query);
+            if($result->num_rows == 1) {
+                $row = $result->fetch_row();
+                $result->close();
+                $re = $row[0];
+                $re1 = $row[1];
+                $_SESSION['user_id'] = $re;
+                $_SESSION['username'] = $re1;
+            }
+            else {
+                $re = 0;
+                $re1 = " ";
+            }
+            $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
+            $response .= '<response><registered>true</registered></response>'; 
+            $response .= '<response><userid>' . $re . '</userid>';
+            $response .= '<username>' . $re1 . '</username></response>'; 
         }
-        $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-        $response .= '<response><userid>' . $re . '</userid>';
-        $response .= '<username>' . $re1 . '</username></response>';
+        unset($_SESSION['temp_username']);
+        unset($_SESSION['temp_password']);
+        unset($_SESSION['email']);
+        // HERE WE HAVE TO REDIRECT TO INDEX.PHP AND SOMEHOW IT SHOULD BE READY TO RECEIVE THESE DATA.
+        // SO THIS IDEA DOES NOT SEEM THAT GOOD, BETTER WE GO WITH THE ENLACE IN THE MAIL TO INDEX.PHP, WHICH WILL
+        // LAUNCH A TASK CALLED FINISHLOGIN WITH ONLY PARAMETER FINISHLOGIN.
+        // THIS WILL TAKE US TO LOGIN.PHP AND THEN WE WILL CREATE THE USER AND COME BACK WITH THE OLD AFTERRESPONSEREGISTER.
+        // WE COULD THEN ADD SOME OPTIONAL THING TO DO TO LOGUSER, JUST TO EXTRACT THE INFORMATION OF THE REGISGTERED IF WE
+        // WANT TO PUT IT.
+ 
         return $response;
     }
     
@@ -160,8 +199,6 @@ class Login {
         //$headers = "Content-type: text/html" . "\r\n";
         $headers = "From: Chat Nacho" . "\r\n";
         $subject = "Password Reset";
-        //$message = 'Please click on the link below to reset your user password:
-        //            <p><a href="http://localhost/ChatNacho/index.php?loc=changepass"><b>Reset Password</b></a></p>';
         $message = 'Please click on the link below to reset your user password:
                     <p><a href="http://chatnacho.tk/index.php?loc=changepass"><b>Reset Password</b></a></p>';
         
@@ -181,12 +218,12 @@ class Login {
         //$pass = sha1($newPass);
         $newPass = $this->msqli->real_escape_string($newPass);
         $response = "";
-        $query = 'UPDATE users SET password = "' . $newPass .'" WHERE email = "' . $email . '"';
+        $query = 'UPDATE users SET password = "' . $newPass . '" WHERE email = "' . $email . '"';
         $this->firephp->log($query, 'query update password');
         $result = $this->msqli->query($query);
         $this->firephp->log($this->msqli->affected_rows, 'affected rows');
+        unset($_SESSION['email']);
         if($this->msqli->affected_rows != 1) {
-            unset($_SESSION['email']);
             $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
             $response .= '<response><passchanged>false</passchanged></response>';
             return $response;
