@@ -97,7 +97,7 @@ $('document').ready(function() {
         
         
             function sendChangePass() {
-                alert("www");    
+                //alert("www");    
                 if(!flags['pass']) {
                         alert("Bad password");
                         return;
@@ -106,9 +106,9 @@ $('document').ready(function() {
                     alert("Pasword does not match");
                     return;
                 }
-                alert("no errror");
+                //alert("no errror");
                 var passChanPost = "task=changePass&newPass=" + encodeURIComponent(sha1($passIn.val()));
-                alert(passChanPost);
+                //alert(passChanPost);
                 //tasks = [];
                 var changePassTask = new QueueTask(passChanPost, afterResponseChangePass, "login.php");
                 executeTask(changePassTask);
@@ -126,12 +126,14 @@ $('document').ready(function() {
             function afterResponseChangePass(docresponse) {
                 // we can go to login page or log in and enter chat directly.
                 var passChanged = docresponse.getElementsByTagName("passchanged")[0].firstChild.data.toString();
-                alert("passChanged: " + passChanged);
+                //alert("passChanged: " + passChanged);
                 if(passChanged === "false") {
                     alert("Sorry, there was a problem when setting the new password. Please retry it later.");
-                    return;
+                    //return;
                 }
-                alert("Your password was successfully changed! Now you will be logged in.");
+                else {
+                    alert("Your password was successfully changed! Now you will be logged in.");
+                }
                 loguser(docresponse);
             }
             
@@ -172,19 +174,19 @@ $('document').ready(function() {
             var $chgtxt = $input.find('#chgtxt'),
             $forgPass = $chatDiv.find('#forgPass');
             $sendBtn = $input.find('#sendBtn');
-            $msgbox = $input.find('#msgbox');
-            var $formatButtons = $chatDiv.find('.chatToolbar').find('td');
-            $formatButtons.filter(':eq(0)').on('click', function() {
-                addFormat("b");
-            });
-            
-            $formatButtons.filter(':eq(1)').on('click', function() {
-                addFormat("i");
-            });
-            
-            $formatButtons.filter(':eq(0)').on('click', function() {
-                addFormat("u");
-            });
+            //$msgbox = $input.find('#msgbox');
+//            var $formatButtons = $chatDiv.find('.chatToolbar').find('td');
+//            $formatButtons.filter(':eq(0)').on('click', function() {
+//                addFormat("b");
+//            });
+//            
+//            $formatButtons.filter(':eq(1)').on('click', function() {
+//                addFormat("i");
+//            });
+//            
+//            $formatButtons.filter(':eq(0)').on('click', function() {
+//                addFormat("u");
+//            });
             
             
             $loginLink.on('click', loadLogin);
@@ -199,9 +201,9 @@ $('document').ready(function() {
             });*/
              
             
-            var startSelec = -1;
-            var endSelec = -1;
-            $msgbox.on("mouseup", getTheRange);
+//            var startSelec = -1;
+//            var endSelec = -1;
+//            $msgbox.on("mouseup", getTheRange);
             //$msgbox.select(getTheRange);
             
             function getTheRange() {
@@ -212,37 +214,28 @@ $('document').ready(function() {
                 else if (document.selection && document.selection.type != "Control") {
                     range = document.selection.createRange();
                 }
-                //alert("selecInBox: " + selecInBox.toString());
-                //var range = selecInBox.getRangeAt(0);
-                //alert("range: " + range);
-                
-                //alert(range)
                 startSelec = range.startOffset;
                 endSelec = range.endOffset;
-                //alert("startselec: " + startSelec +"; endselec: " + endSelec);
             }
-            //var $msgbox1 = $input.find('#msgbox1');
-            function addFormat(tag) {
-                if(startSelec === -1 || startSelec === endSelec) {
-                    alert("Please select some text first to apply the changes.");
-                    startSelec = -1;
-                    endSelec = -1;
-                    return;
-                }
-                /*if(startSelec === endSelec) {
-                    
-                }*/
-                var text = $msgbox.html();
-                var newText = text.substring(0, startSelec) + "<"+tag+">" + text.substring(startSelec, endSelec) + "</"+tag+">" + text.substring(endSelec);
-                $msgbox.html(newText);
-                startSelec = -1;
-                endSelec = -1;
-            }
+            var $msgbox1 = $input.find('#msgbox1');
+//            function addFormat(tag) {
+//                if(startSelec === -1 || startSelec === endSelec) {
+//                    alert("Please select some text first to apply the changes.");
+//                    startSelec = -1;
+//                    endSelec = -1;
+//                    return;
+//                }
+//                var text = $msgbox.html();
+//                var newText = text.substring(0, startSelec) + "<"+tag+">" + text.substring(startSelec, endSelec) + "</"+tag+">" + text.substring(endSelec);
+//                $msgbox.html(newText);
+//                startSelec = -1;
+//                endSelec = -1;
+//            }
             
             function change() {
                 if(tempUser !== "") { 
                     $userChat.attr('disabled', 'disabled');
-                    $msgbox.removeAttr('disabled');
+                    $msgbox1.removeAttr('disabled');
                     tempUser = "";
                     $chgtxt.html("");
                     $changeUserBtn.html("Change"); 
@@ -251,7 +244,7 @@ $('document').ready(function() {
                 else {
                     //manageQueue = false;
                     //tasks = [];
-                    $msgbox.attr('disabled', 'disabled');
+                    $msgbox1.attr('disabled', 'disabled');
                     $changeUserBtn.attr('disabled', 'disabled');
                     $userChat.removeAttr('disabled');
                     tempUser = $userChat.val();
@@ -301,7 +294,7 @@ $('document').ready(function() {
                    }
                    fieldIsInDatabase(trim(value), field, function(res) {
                        if(res === "true") {
-                           alert("hello");
+                           //alert("hello");
                            $output.html(msgMatch);
                            //$changeUserBtn.attr('disabled', 'disabled');
                            //flags[flag] = !vf;
@@ -331,18 +324,18 @@ $('document').ready(function() {
             function orderSendMessage() {
                 //alert($msgbox.val());
                 //var pep = $msgbox.val()
-                var message = trim($msgbox.html());
+                var message = trim($msgbox1.val());
                 if(typeof message === 'undefined' || message === "") {
                     alert("sending empty messages is not allowed");
                     return;
                 }
-                alert("send message");
+                //alert("send message");
                 
                 var msgPost = "task=sendMessage" + "&user=" + encodeURIComponent(trim($userChat.val())) + 
                 "&message=" + encodeURIComponent(message) + "&id=" + lastid;
                 //tasks = [];
                 tasks.push(new QueueTask(msgPost, afterResponseSendMessage, "chatnacho.php"));
-                alert(msgPost);
+                //alert(msgPost);
                 /*if(!managerRunning) {
                     manageTasks();
                 }*/
@@ -355,22 +348,16 @@ $('document').ready(function() {
              */
             function afterResponseSendMessage(docresponse) {
                 //alert(docresponse);
-                alert("sending message");
-                //var posted = "true";
+                //alert("sending message");
                 var posted = docresponse.getElementsByTagName("posted")[0].firstChild.data.toString();
-                alert("posted: " + posted);
+                //alert("posted: " + posted);
                 if(posted === "true") {
-                    alert("post ok");
-                    $msgbox.html("");
+                    //alert("post ok");
+                    $msgbox1.val("");
                 }
                 else {
                     if(tries < 3) {
                         alert("Sorry, there was an error when trying to post your message. Retrying...");
-                        // This is very bad. We cannot put the task again in the queue to repeat, 
-                        // because in that case, it will be executed again too late.
-                        // So we need it to repeat but without putting this task in the queue again.
-                        // Actually, this could be a bad idea, we can do it but we will need a limit of repeats...
-                        // So, we can just execute the task without queue or put it in the head of the queue.
                         tries ++;
                         setTimeout(function() {
                             executeTask(currentQtask);
@@ -407,18 +394,14 @@ $('document').ready(function() {
      * @returns {undefined}
      */
     function orderLogout() { // I decided to put this function outside of
-        alert("logout"); 
-        //tasks = [];
-        //stopManager();
-        //cycleManager = false;
+        //alert("logout"); 
         executeTask(new QueueTask("task=logout", function(docresponse) {
             var logoutres = docresponse.getElementsByTagName("logout")[0].firstChild.data.toString();
             if(logoutres === "true") {
                 logged = false;
                 userid = 0;
                 username = "";
-                alert("succesful logout");
-                //lastid = idres;  
+                //alert("succesful logout"); 
             }
             else {
                 alert("Sorry, there was an error while logging out.");
@@ -441,7 +424,7 @@ $('document').ready(function() {
     }
     
     function afterResponseFinishRegister(docresponse) {
-        
+        registerUser(docresponse);
     }
     
     function registerUser(docresponse) {
@@ -452,7 +435,7 @@ $('document').ready(function() {
         else {
             var idres = docresponse.getElementsByTagName("userid")[0].firstChild.data;
             var name = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
-            alert("id: " + idres +"; name: " + name);
+            //alert("id: " + idres +"; name: " + name);
             if(idres > 0) {
                 logged = true;
                 userid = idres;  
@@ -475,7 +458,7 @@ $('document').ready(function() {
      * @returns {undefined}
      */
     function loadLogin() {
-        alert("load login");
+        //alert("load login");
         //stopManager(); // we are not in the chat window anymore so there's no need to do cyclic retrieves of messages.
         manageQueue = false;
         //cycleManager = false;
@@ -510,7 +493,7 @@ $('document').ready(function() {
              * @returns {undefined}
              */
             function sendLogin() {
-                alert("send login");
+                //alert("send login");
                 if(!flags['us']) {
                     alert("Bad user name");
                     return;
@@ -542,7 +525,7 @@ $('document').ready(function() {
 //=====================================================================================
     
     function loadForgotPass() {
-        alert("load forgot");
+        //alert("load forgot");
         //stopManager(); // we are not in the chat window anymore so there's no need to do cyclic retrieves of messages.
         manageQueue = false;
         //cycleManager = false;
@@ -578,7 +561,7 @@ $('document').ready(function() {
              * @returns {undefined}
              */
             function sendForgot() {
-                alert("send forgot");
+                //alert("send forgot");
                 if(!flags['em']) {
                     alert("Bad email");
                     return;
@@ -588,7 +571,7 @@ $('document').ready(function() {
                 //tasks = [];
                 var forgotTask = new QueueTask(forgotPost, afterResponseForgot, "login.php");
                 executeTask(forgotTask);
-                
+                $mainFrame.html("<h2>Please check your incoming mail, we just sent you a confirmation email.</h2>");
                 
                 // So, now php receives the data and sends an email to the provided address, with a link to reset the password.
                 // This can be embedded in the main page index for further use. So  we need to access index.html
@@ -622,12 +605,8 @@ $('document').ready(function() {
      * @returns {undefined}
      */
     function loadReg() {
-        alert("load reg");
-        //tasks = [];
-        //stopManager(); // same as in login
+        //alert("load reg");
         manageQueue = false;
-        //cycleManager = false;
-        //var us = false, em = false, pas = false, confpas = false;
         var minlength = 6;
         var flags = {us : false, pas : false, confpas : false};
         //alert("flags: " + flags['us']);
@@ -645,11 +624,6 @@ $('document').ready(function() {
             $testConfirmPass = $regDiv.find('#testConfirmPass'),
             $goReg = $regDiv.find('#goReg');
             var $testReg = $regDiv.find('#testReg');
-            //$testReg.html("matches");
-            //$userReg.val("aligatoR25");
-            //$emailReg.val("aligator25@cona.com");
-            //$passReg.val("22TTjfd");
-            //$confirmPass.val("22TTjfd");
             $goReg.on('click', sendReg);
             
             
@@ -671,7 +645,6 @@ $('document').ready(function() {
              * @returns {undefined}
              */
             function sendReg() {
-                //alert("flag: " + flags['us']);
                 if(!flags['us']) {
                     alert("Bad user name");
                     return;
@@ -688,20 +661,20 @@ $('document').ready(function() {
                     alert("Pasword does not match");
                     return;
                 }
-                alert("no errror");
+                //alert("no errror");
                 var regt = ["task=register", "user=" + encodeURIComponent($userReg.val()), 
                 "email=" + encodeURIComponent($emailReg.val()),
                 "pass=" + encodeURIComponent(sha1($passReg.val()))];
                 var regPost = regt.join("&");
-                alert(regPost);
-                //tasks = [];
+                //alert(regPost);
                 var regTask = new QueueTask(regPost, afterResponseRegister, "login.php");
                 executeTask(regTask);
+                $mainFrame.html("<h2>Please check your incoming mail, we just sent you a confirmation email.</h2>");
 
             }
             
             function afterResponseRegister(docresponse) {
-                //loguser(docresponse);   
+                //$mainFrame  
             }
         });
     }
@@ -721,7 +694,7 @@ $('document').ready(function() {
         // ITS OK, ITS NOT IN THE QUEUE
         executeTask(new QueueTask("task=checklogin", function(docresponse) {
             userid = docresponse.getElementsByTagName("user_id")[0].firstChild.data;
-            alert("checking login: userid: " + userid);
+            //alert("checking login: userid: " + userid);
 
             if(userid > 0) {
                 username = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
@@ -783,7 +756,7 @@ $('document').ready(function() {
     function loguser(docresponse) {
         var idres = docresponse.getElementsByTagName("userid")[0].firstChild.data;
         var name = docresponse.getElementsByTagName("username")[0].firstChild.data.toString();
-        alert("id: " + idres +"; name: " + name);
+        //alert("id: " + idres +"; name: " + name);
         if(idres > 0) {
             logged = true;
             userid = idres;  
@@ -793,8 +766,11 @@ $('document').ready(function() {
         else {
             alert("Sorry, there was an error while logging. Check if your user and password are correct.");
         }
-        window.location = "http://chatnacho.tk/index.php";
-        //loadChat();
+        if(docresponse.getElementsByTagName("passchanged").length != 0) {
+            window.location = "http://chatnacho.tk/index.php";
+        }
+        //
+        loadChat();
         //$chatWindow.html(extractMessages(docresponse)); // this can be append if we mantain the page hidden...
         //tasks.push(new QueueTask("task=&id=" + lastid, afterResponseRetrieveMessages));
     }
@@ -804,7 +780,7 @@ $('document').ready(function() {
      * @returns {undefined}
      */
     function orderRetrieveMessages() {
-        alert("retrieve"); 
+        //alert("retrieve"); 
         tasks.push(new QueueTask("task=retrieve&id=" + lastid, afterResponseRetrieveMessages, "chatnacho.php"));
     }
     
@@ -888,7 +864,7 @@ $('document').ready(function() {
                     // process the server's response
                     
                     var response = xhr.responseText;
-                    //alert("task: " +  task + "\nresponse: " + response);
+                    alert("task: " +  task + "\nresponse: " + response);
                     if (response.indexOf("ERRNO") >= 0
                     || response.indexOf("error:") >= 0
                     || response.length === 0)
@@ -1058,7 +1034,7 @@ $('document').ready(function() {
             }
             fieldIsInDatabase(trim(value), field, function(res) {
                 if(res === "true") {
-                    alert("hello");
+                    //("hello");
                     $output.html(msgMatch);
                     flags[flag] = !vf;
                     if(f1) {f1();}
@@ -1113,8 +1089,6 @@ $('document').ready(function() {
             task += "&op=" + op;
         }
         //alert(task);
-        //tasks.push(task);
-        //xhr = new XMLHttpRequest();
         if(xhr)
         {
             try
@@ -1173,16 +1147,12 @@ $('document').ready(function() {
                     var parser = new DOMParser();
                     var xmlResponse = parser.parseFromString(xhr.responseText, "application/xml"), // IE cannot read the response XML thing or so seems to be...
                     docresponse = xmlResponse.documentElement;
-                    // retrieve the document element
-                    //response = xmlHttpGetMessages.responseXML.documentElement;
                     // retrieve the flag that says if the chat window has been cleared or not
                     //alert(docresponse.getElementsByTagName("clear")[0].firstChild.data);
                     var res = docresponse.firstChild.data.toString();
                     //alert("response " + xhr.responseText);
                     //alert(callback);
                     callback(res);
-                    //stopManager();
-                    //alert("flag: " + flags['us']);
                 }
                 catch(e)
                 {

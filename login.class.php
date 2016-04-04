@@ -85,6 +85,8 @@ class Login {
     }
     
     public function register($user, $email, $password) {
+        ini_set('SMTP','smtp.gmail.com');
+        ini_set('smtp_port',587);
         $_SESSION['temp_username'] = $user;
         $_SESSION['temp_password'] = $password;
         $_SESSION['email'] = $email;
@@ -92,9 +94,10 @@ class Login {
         //$headers = "Content-type: text/html; charset=UTF-8" . "\r\n";
         //$headers = "Content-type: text/html" . "\r\n";
         $headers = "From: Chat Nacho" . "\r\n";
+        //$headers .= "Content-Type: text/html"."\r\n";
         $subject = "Email confirmation";
         $message = 'Please click on the link below to confirm your email address:           
-        <p><a href="http://chatnacho.tk/index.php?task=register"><b>Confirm email</b></a></p></form>';
+        <p><a href="http://chatnacho.tk/index.php?loc=register"><b>Confirm email</b></a></p>';
         
         $this->firephp->log($email, 'register email');
         $res = mail($email, $subject, $message, $headers); 
@@ -109,7 +112,13 @@ class Login {
         $response = '';
         if(empty($_SESSION['temp_username']) || empty($_SESSION['temp_password']) || empty($_SESSION['email'])) {
             $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-            $response .= '<response><registered>false</registered></response>';   
+            $response .= '<response><registered>false</registered></response>'; 
+            if(empty($_SESSION['temp_username']))
+                $this->firephp->log('is empty', 'temp_username');
+            if(empty($_SESSION['temp_password']))
+                $this->firephp->log('is empty', 'temp_password');
+            if(empty($_SESSION['email']))
+                $this->firephp->log('is empty', 'email');
         }
         else {
             $user = $this->msqli->real_escape_string($_SESSION['temp_username']);
@@ -136,8 +145,8 @@ class Login {
                 $re1 = " ";
             }
             $response = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
-            $response .= '<response><registered>true</registered></response>'; 
-            $response .= '<response><userid>' . $re . '</userid>';
+            $response .= '<response><registered>true</registered>'; 
+            $response .= '<userid>' . $re . '</userid>';
             $response .= '<username>' . $re1 . '</username></response>'; 
         }
         unset($_SESSION['temp_username']);
@@ -189,8 +198,8 @@ class Login {
     }
     
     function forgotPass($email) {
-        //ini_set('SMTP','smtp.gmail.com');
-        //ini_set('smtp_port',587);
+        ini_set('SMTP','smtp.gmail.com');
+        ini_set('smtp_port',587);
         //$to = "$email;
         //ini_set('SMTP','smtp.gmail.com');
         //ini_set('smtp_port',587);
@@ -198,6 +207,7 @@ class Login {
         //$headers = "Content-type: text/html; charset=UTF-8" . "\r\n";
         //$headers = "Content-type: text/html" . "\r\n";
         $headers = "From: Chat Nacho" . "\r\n";
+        //$headers .= "Content-Type: text/html"."\r\n";
         $subject = "Password Reset";
         $message = 'Please click on the link below to reset your user password:
                     <p><a href="http://chatnacho.tk/index.php?loc=changepass"><b>Reset Password</b></a></p>';
@@ -211,7 +221,7 @@ class Login {
     }
     
     public function changePass($newPass) {
-        $_SESSION['email'] = "ignaciogarcia198@gmail.com";
+        //$_SESSION['email'] = "ignaciogarcia198@gmail.com";
         $this->firephp->log($_SESSION['email'], 'email session');
         if(empty($_SESSION['email'])) {return;} 
         $email = $_SESSION['email'];
